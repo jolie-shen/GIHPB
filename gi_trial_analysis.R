@@ -6707,3 +6707,5 @@ for(igg in ggshort_list) {
 # ggsave('Radiation Trials/gilogyAnalysis/figure5_survival.pdf', 
 #        plot = print(gg_fig_surv_RR_sponsor_gi_global_phase23, newpage = FALSE), width = 10, height = 10, useDingbats = FALSE)
 
+
+                       

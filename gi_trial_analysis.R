@@ -46,23 +46,6 @@ raw_gi_list <-
   as_tibble() %>%
   mutate_all(as.character)
 
-# need to merge a few categories...
-"""raw_gi_list <- 
-  raw_gi_list %>%
-  mutate(pnspine = case_when(
-    '1' == peripheral | '1' == cranial ~ '1',
-    TRUE ~ NA_character_
-  )) %>%
-  mutate(nmjmuscle = case_when(
-    '1' == nmj | '1' == muscle ~ '1',
-    TRUE ~ NA_character_
-  )) %>%
-  mutate(systemic = case_when(
-    '1' == toxic | '1' == inherited ~ '1',
-    TRUE ~ NA_character_
-  ))"""
-
-
 #blue columns below
 cols_disease_full <- 
   c(
@@ -161,14 +144,14 @@ raw_gi_list %>%
   unique()
 
 
-# in my case, there are only '1' or NA, as instructed
+# in my case, there are only '1' or NA, as instructed. all blanks got turned to NA/False
 
 # do some light processing
 raw_gi_list <-
   raw_gi_list %>%
   mutate_at(vars(one_of(all_disease_cols)), function(x) !is.na(x)) # convert NA to FALSE for disease
 
-# --------------------------        MERGE GI DATA WITH BIGTBL       -----------------------------
+# --------------------------        MERGE GI DATA WITH BIGTBL based on nct_ID      -----------------------------
 
 full_gi_df <- 
   left_join(raw_gi_list %>%
@@ -193,14 +176,16 @@ full_gi_df <-
                               Bigtbl %>% pull(nct_id)))
 
 
-# ------ Get Max Date
+# ------ Get Max Date, basically date it was pulled 
 gi_maxdate <- full_gi_df %>% pull(study_first_submitted_date) %>% max(na.rm = TRUE) # get the last date for trials that we used
 gi_maxdate
 
 #Oct 24 2019
 
 # -------------------------------------------#
-# filter out interventional and stuff before May 1 or after Oct 2007
+# filter out interventional and stuff before May 1 2018 or after Oct 1 2007 - MARIJA to find out what this is 
+        # 10/1/2007 - the date clinical trials mandated to be put in
+        # 5/1/2018 arbitrary for neuroanalysis
 
 full_gi_df <- 
   full_gi_df %>%
@@ -209,7 +194,8 @@ full_gi_df <-
   filter(study_first_submitted_date < ymd('20180501'))
 
 
-
+#do not need full_comparison_df unless we want to bin
+            
 full_comparison_df <- 
   Bigtbl %>%
   filter(study_type == 'Interventional') %>% 
@@ -233,6 +219,8 @@ btest1 <- my_studies %>% filter(study_first_submitted_date < ymd('20180501'))
 btest2 <- btest1 %>% filter(study_type == 'Interventional') # how many interventional trials? 
 btest3 <- btest2 %>% filter(study_first_submitted_date >= ymd('20071001')) # how many lost because submitted before Oct 2007?
 
+#These numbers are no longer updated but should be larger 
+            
 # how many lost b/c of interventional status
 nrow(btest1) - nrow(btest2)
 #56301
@@ -241,7 +229,7 @@ nrow(btest1) - nrow(btest2)
 nrow(btest2) - nrow(btest3)
 #38102
 
-# how many are we left with before specialty filter?
+# how many are we left with before specialty filter? Specialty filter is for GI studies only
 nrow(btest3)
 #180708
 
@@ -274,7 +262,7 @@ rm(btest0, btest0b, btest1, btest2, btest3)
 sum(full_gi_df$enrollment, na.rm = TRUE)
 
 # --------------------------------------------#
-
+#these are pulled from the bigtbl
 col_regions <- c('Africa', 'CentralAmerica', 'EastAsia', 'Europe', 
                  'MiddleEast', 'NorthAmerica', 'Oceania',
                  'Other', 'SouthAmerica', 'SouthAsia', 'SoutheastAsia')
@@ -297,7 +285,7 @@ full_comparison_df <-
                                             is.na(.) ~ FALSE, 
                                             TRUE ~ .)))
 
-# some notes for you on regions and countries in case you want to know what the top 20 are (in order) across ALL trials
+# some notes for you on regions and countries in case you want to know what the top 20 are (in order) across ALL trials, not spsecific to GI
 col_reg_top <-
   c('NorthAmerica', 'Europe', 'EastAsia', 'SouthAmerica', 'Oceania', 'MiddleEast',
     'Africa', 'SouthAsia', 'SoutheastAsia', 'CentralAmerica', 'Other')
@@ -314,23 +302,8 @@ col_con_top20 <-
 # my nomenclature is that disease_other3 means diseases that are not a part of the top 3 so they are considered "other"
 # table1_disease_total_global %>% pull(rowname) %>% paste0(collapse = "', '")
 
-#**# This line isn't necessary outside of Psych, I should remove it, but can keep it as a placeholder for dealing with future sets.
-#cols_disease <- setdiff(cols_disease_full,
-                        'child') # child is not actually a disease for us I guess? 
-
-# since removing 'child' category, there may now be some columns that have no check for any other column
-# we will convert those to other
-"""full_gi_df <-
-  full_gi_df %>% 
-  mutate(allempty = pmap_lgl(list(!!! rlang::syms(cols_disease)),
-                             function(...) ! any(sapply(list(...), function(i) i)))) %>%
-  mutate(other = case_when(
-    allempty ~ TRUE,
-    TRUE ~ other
-  ))"""
-#MK QUESTION: where is cols_disease?
-
-
+#cols_disease is all the disease columns we coded but not the location
+            
 cols_disease_in_order <-
   full_gi_df %>% 
   select(one_of(cols_disease)) %>%
@@ -354,6 +327,8 @@ cols_location_in_order <-
   arrange(desc(V1)) %>% 
   pull(rowname)
 
+            
+          #####DELETE 
 # when selecting "top diseases" we don't want "other"
 
 cols_disease_other3 <- setdiff(cols_disease, cols_disease_in_order[1:3]) # ie if there is a check for anything *outside* the top 3
@@ -445,9 +420,12 @@ full_gi_df <-
     
   )
 
+                                                  #####DELETE
+                                                 
 full_gi_df %>% bcount(br_gni_lmic_hic) # there are so few that have both HMIC & LMIC in the trial, we'll just convert these to NA below
 
 # add a bunch of other useful columns
+                                                 
 full_gi_df <-
   full_gi_df %>%
   mutate(new_arms = Hmisc::cut2(x = number_of_arms, cuts = c(1,2,3,Inf)),
@@ -547,6 +525,7 @@ full_gi_df <-
   mutate(br_phase4_ref_ph3 = fct_relevel(br_phase4, 'Phase 2/3-3'),
          br_phase4_ref_ph1 = fct_relevel(br_phase4, 'Phase 1'))
 
+   ##DOING THE SAME HERE WIHT FULL-COMPARISION CAN DELETE
 
 
 full_comparison_df <- 
@@ -589,23 +568,7 @@ full_comparison_df <-
            br_studystatus == 'Stopped early' ~ TRUE,
            TRUE ~ NA
          )) %>%
-  mutate(br_time_until_resultsreport_or_present_inmonths = case_when(
-    br_studystatus != 'Completed' ~ NA_real_,
-    were_results_reported ~ as.period(results_first_submitted_date - primary_completion_date) / months(1),
-    TRUE ~ as.period(ymd('20180501') - primary_completion_date) / months(1)
-  )) %>%
-  mutate(br_censor_were_results_reported = as.numeric(were_results_reported)) %>%
-  mutate(br_were_results_reported_within_2year = case_when(
-    br_studystatus != 'Completed' ~ NA,
-    primary_completion_date >= ymd('20160501') ~ NA, # we only consider trials completed >=2 years ago (we should later change this to not be hard coded)
-    were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 24) ~ TRUE,
-    TRUE ~ FALSE
-  )) %>%
-  mutate(br_were_results_reported_within_1year = case_when(
-    br_studystatus != 'Completed' ~ NA,
-    primary_completion_date >= ymd('20170501') ~ NA, # we only consider trials completed >=1 year ago
-    were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 12) ~ TRUE,
-    TRUE ~ FALSE
+ 
   )) %>%
   mutate(
     USA_only_facilities = case_when(
@@ -689,213 +652,6 @@ nctgi_good_3c_poor <- full_gi_df %>% filter(!br_good3c_single_random) %>% pull(n
 nct_gi_good_4c_good <- full_gi_df %>% filter(br_good4c_double_random) %>% pull(nct_id)
 nct_gi_good_4c_poor <- full_gi_df %>% filter(!br_good4c_double_random) %>% pull(nct_id)
 
-
-# -------------------------------------------------------------------------#
-# ---------           THIS SECTION IS A MESS OF GRAPHS JUST FYI        -------------
-# -------------------------------------------------------------------------#
-
-#trying to plot anatomic locations
-gilocations_test <- full_gi_df %>%
-  select(one_of(cols_location))
-summarize(gilocations_test, count=n())
-
-gicountslocation_test <- gilocations_test %>%
-  gather() %>%
-  group_by(key) %>%
-  summarise(value = sum(value=="TRUE"))
-
-#using name table
-name_locations <- name_table[8:18,]
-name_locations <- name_locations[
-  with(name_locations, order(code_name)),
-  ]
-
-name_loc_original <- name_locations$original_name
-
-#LOCATIONS GRAPH
-ggplot(gicountslocation_test, aes(x=reorder(name_loc_original, -value), y=value)) + 
-  geom_bar(stat="identity", fill = "firebrick4") + labs(x = "anatomical location", y = "count") +
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1))
-
-#then overall disease process
-
-gioverall_test <- full_gi_df %>%
-  select(one_of(cols_disease_full))
-
-gioverall_test <- gioverall_test %>%
-  gather() %>%
-  group_by(key) %>%
-  summarise(value = sum(value=="TRUE"))
-
-gioverall_test_in <- filter(gioverall_test, value > 258)
-gioverall_test_out <- filter(gioverall_test, value <= 258)
-
-gioverall_in_other <- gioverall_test_in[gioverall_test_in$key %in% 'other', 'value']
-gioverall_add <- as.integer(sum(gioverall_test_out$value) + gioverall_in_count$value)
-gioverall_test_in$value[gioverall_test_in$key == "other"] <- gioverall_add
-
-#PLOT
-
-name_disease <- name_table %>%
-  filter(blue_vs_yellow == 'b')
-name_disease <- name_disease[
-  with(name_disease, order(code_name)),
-  ]
-
-gioverall_test_in <- gioverall_test_in %>% 
-  rename(
-    code_name = key
-  )
-
-gioverall_test_in <- gioverall_test_in %>%
-  left_join(name_disease, by = "code_name")
-
-gioverall_test_out <- gioverall_test_out %>% 
-  rename(
-    code_name = key
-  )
-
-gioverall_test_out <- gioverall_test_out %>%
-  left_join(name_disease, by = "code_name")
-
-gioverall_test <- gioverall_test %>% 
-  rename(
-    code_name = key
-  )
-
-gioverall_test <- gioverall_test %>%
-  left_join(name_disease, by = "code_name")
-
-ggplot(gioverall_test_in, aes(x=reorder(longname, -value), y=value)) + 
-  geom_bar(stat="identity", fill = "firebrick4") + labs(x = "disease process", y = "count") +
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1))
-
-ggplot(gioverall_test_out, aes(x=reorder(longname, -value), y=value)) + 
-  geom_bar(stat="identity", fill = "firebrick4") + labs(x = "disease process", y = "count") +
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1))
-
-
-#Caring about neoplasm, versus infection, versus other
-
-
-#separate into major groups
-gioverall_other <- gioverall_test %>%
-  filter(code_name != "infection_any" | code_name != "neoplasia_disease")
-
-gioverall_neoplasm <- gioverall_test %>%
-  filter(code_name == "infection_any" | code_name == "neoplasia_disease") %>%
-  add_row(code_name = "other", value = sum(gioverall_other$value))
-
-# Compute percentages
-gioverall_neoplasm <- gioverall_neoplasm %>%
-  mutate(fraction = value / sum(value)) %>%
-  mutate(ymax = cumsum(fraction)) %>%
-  mutate(ymin = c(0, head(ymax, n = -1))) %>%
-  mutate(labelPosition = (ymax + ymin) / 2) %>%
-  mutate(label = paste0(longname, ":\n ", round(fraction * 100, digits = 1), "%")) %>%
-  mutate(longname = c("Infection", "Neoplasia", "Other"))
-
-
-
-
-# Make the plot
-
-ggplot(gioverall_neoplasm, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=longname)) +
-  geom_rect() +
-  geom_label(x=1.5, aes(y=labelPosition, label=label), size=6) +
-  scale_fill_brewer(palette="YlOrRd") +
-  scale_color_brewer(palette="YlOrRd") +
-  coord_polar(theta="y") +
-  xlim(c(-2, 4)) +
-  theme_void() +
-  theme(legend.position = "none")
-
-
-#LASTLY, anatomy x neoplasm versus other
-
-data_long <- full_gi_df %>%
-  select(nct_id, location_esophagus:neoplasia_disease)
-
-data_others <- full_gi_df %>%
-  select(abdominal_hernia:other) %>%
-  transmute(others = rowSums(data_others) > 0)
-
-data_long <- cbind(data_long, data_others)
-
-data_long2 <- tidyr::gather(data_long, key = location, value = loc_cat, -nct_id, -infection_any, -neoplasia_disease, -others)
-
-data_long2$location[data_long2$location == "location_esophagus"] <- "Esophagus"
-data_long2$location[data_long2$location == "location_stomach"] <- "Stomach"
-data_long2$location[data_long2$location == "location_small_intestine"] <- "Small Intestine"
-data_long2$location[data_long2$location == "location_colon_rectum"] <- "Colon & Rectum"
-data_long2$location[data_long2$location == "location_anus"] <- "Anus"
-data_long2$location[data_long2$location == "location_liver"] <- "Liver"
-data_long2$location[data_long2$location == "location_biliarytract"] <- "Biliary Tract"
-data_long2$location[data_long2$location == "location_gallbladder"] <- "Gallbladder"
-data_long2$location[data_long2$location == "location_pancreas"] <- "Pancreas"
-data_long2$location[data_long2$location == "location_peritoneum"] <- "Peritoneum"
-data_long2$location[data_long2$location == "location_notspecified"] <- "Not Specified"
-
-
-data_long3 <- tidyr::gather(data_long2, key = disease, value = dis_cat, -nct_id, -location, -loc_cat)
-
-data_long3$disease[data_long3$disease == "infection_any"] <- "Infectious Process"
-data_long3$disease[data_long3$disease == "neoplasia_disease"] <- "Neoplasia"
-data_long3$disease[data_long3$disease == "others"] <- "Other"
-
-#unique(data_long3$disease)
-
-data_long_true <- data_long3 %>%
-  filter(loc_cat == 'TRUE' & dis_cat == "TRUE")
-
-ggplot(data = data_long_true) +
-  geom_bar(mapping = aes(x = fct_infreq(location), fill = disease)) +
-  scale_fill_brewer(palette="YlOrRd") +
-  theme(axis.text.x = element_text(face = "bold", size = 12, angle = 45, hjust = 1)) +
-  labs(
-    y = "Count",
-    x = "Location"
-  )
-
-#inverse
-
-ggplot(data = data_long_true) +
-  geom_bar(mapping = aes(x = fct_infreq(disease), fill = location)) +
-  scale_fill_brewer(palette="Spectral") +
-  theme(axis.text.x = element_text(face = "bold", size = 12, angle = 45, hjust = 1)) +
-  labs(
-    y = "Count",
-    x = "Disease"
-  )
-
-
-#by proportion
-data_long_true$location <- factor(data_long_true$location, levels = c("Pancreas", "Peritoneum", "Colon & Rectum", "Biliary Tract", "Esophagus", "Stomach", "Liver", "Anus", "Gallbladder", "Small Intestine", "Not Specified"))
-data_long_true$disease <- factor(data_long_true$disease, levels = c("Other", "Infectious Process", "Neoplasia"))
-ggplot(data = data_long_true) +
-  geom_bar(mapping = aes(x = location, fill = disease),
-           position = "fill") +
-  scale_fill_brewer(palette="YlOrRd") +
-  theme(axis.text.x = element_text(face = "bold", size = 12, angle = 45, hjust = 1)) +
-  labs(
-    y = "Proportion",
-    x = "Location"
-  )
-
-#the inverse
-ggplot(data = data_long_true) +
-  geom_bar(mapping = aes(x = disease, fill = location),
-           position = "fill") +
-  scale_fill_brewer(palette="Spectral") +
-  theme(axis.text.x = element_text(face = "bold", size = 12, angle = 45, hjust = 1)) +
-  labs(
-    y = "Proportion",
-    x = "Disease Process"
-  )
-
-
-#all_disease_cols <- c(cols_location, cols_disease_full, spec_disease)
-#cols_disease <- c(cols_disease_full, spec_disease)
 
 # -------------------------------------------------------------------------#
 # ---------           BELOW: BRANDON'S CODES FOR REGRESSION       -------------

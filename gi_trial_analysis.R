@@ -194,19 +194,6 @@ full_gi_df <-
   filter(study_first_submitted_date < ymd('20180501'))
 
 
-#do not need full_comparison_df unless we want to bin
-            
-full_comparison_df <- 
-  Bigtbl %>%
-  filter(study_type == 'Interventional') %>% 
-  filter(study_first_submitted_date >= ymd('20071001')) %>%
-  filter(study_first_submitted_date < ymd('20180501')) %>%
-  filter(nct_id %nin% (full_gi_df %>% pull(nct_id))) %>% 
-  mutate(bintime = case_when(
-    year(study_first_submitted_date) <= 2012 ~ '2007_2012',
-    year(study_first_submitted_date) > 2012 ~ '2013_2018',
-    TRUE ~ NA_character_
-  ))
 
 # -------------------------------------------# 
 # -------- Get Size Data
@@ -285,48 +272,7 @@ full_comparison_df <-
                                             is.na(.) ~ FALSE, 
                                             TRUE ~ .)))
 
-# some notes for you on regions and countries in case you want to know what the top 20 are (in order) across ALL trials, not spsecific to GI
-col_reg_top <-
-  c('NorthAmerica', 'Europe', 'EastAsia', 'SouthAmerica', 'Oceania', 'MiddleEast',
-    'Africa', 'SouthAsia', 'SoutheastAsia', 'CentralAmerica', 'Other')
-
-col_con_top20 <-
-  c('UnitedStates', 'Germany', 'France', 'Canada', 'Japan',
-    'UnitedKingdom', 'Spain', 'Italy', 'China', 'Poland',
-    'RussianFederation', 'KoreaRepublicof', 'Belgium',
-    'Australia', 'Netherlands', 'Brazil', 'Hungary',
-    'India', 'Israel', 'Sweden')
-
-# using some code from table1_disease_total_global I was able to figure out what the top diseases were, and from this to make a collapsed
-# disease_other that combines the disease groups that aren't used that often...
-# my nomenclature is that disease_other3 means diseases that are not a part of the top 3 so they are considered "other"
-# table1_disease_total_global %>% pull(rowname) %>% paste0(collapse = "', '")
-
-#cols_disease is all the disease columns we coded but not the location
-            
-cols_disease_in_order <-
-  full_gi_df %>% 
-  select(one_of(cols_disease)) %>%
-  summarise_all(sum) %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column() %>% 
-  filter(rowname %nin% c('other')) %>%
-  arrange(desc(V1)) %>% 
-  pull(rowname)
-
-
-cols_location_in_order <-
-  full_gi_df %>% 
-  select(one_of(cols_location)) %>%
-  summarise_all(sum) %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column() %>% 
-  filter(rowname %nin% c('notspecified')) %>%
-  arrange(desc(V1)) %>% 
-  pull(rowname)
-
+      
                                                  
 full_gi_df %>% bcount(br_gni_lmic_hic) # there are so few that have both HMIC & LMIC in the trial, we'll just convert these to NA below
 

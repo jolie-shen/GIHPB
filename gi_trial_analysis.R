@@ -395,6 +395,131 @@ full_spec_combined_df <-
 # -------------------------------------------------------------------------#
 
 # -------------------------------------------------------------------------#
+# ---------                JOLIES ANALYSIS                -------------
+# -------------------------------------------------------------------------#
+
+ ######creating a list of all the columns in full_gi_df I think might be useful in the analysis and called it cols_to_add
+
+cols_to_add <- c(
+	"nct_id", #------ID
+
+	"early_discontinuation", #------PRIMARY OUTCOME OF EARLY DISCONTINUATION
+
+	"industry_any2", 
+	"new_industry_any3_ref_nih", 
+	"industry_any2b", 
+	"new_industry_any2b_ref_usgovt", #-----Sponsorship
+
+	"phase", 
+	"br_phase4_ref_ph3", 
+	"br_phase4_ref_ph1", 
+	"br_phase2", 
+	"new_br_phase2", #----Phase
+
+	"enrollment", #-----Number of participants enrolled
+	
+	"bintime", #------duration 2007-2012, 2013-2018
+	
+	"new_primary_purpose_treatment", 
+	"new_primary_purpose_treatment2", 
+	"primary_purpose", #----primary objective of the intervention
+	
+	"interv_all_intervention_types", #-----type of intervention
+	
+	"new_num_facilities2", 
+	"num_facilities",  #------number of sites
+	
+	"br_singleregion", 
+	"all_regions", 
+	"all_countries", 
+	"USA_only_facilities", 
+	"US_facility", 
+	"num_countries",  #-------Geographic region of sites
+	
+	"allocation", 
+	"br_allocation", 
+	"masking", 
+	"br_masking1", 
+	"br_masking2", #------use of randomization and blinding
+	
+	"has_dmc", #--------oversight by a data-monitoring committee
+	
+	"overall_status", #---------recruitment status
+	
+	"number_of_arms", 
+	"all_comp_num_arms", #------number of arms
+
+	"infection_any",
+	"infection_helminth",
+	"infection_intestines",
+	"infection_hepatitis",
+	"neoplasia_primary",
+	"neoplasia_metastasis",
+	"neoplasia_disease",
+	"abdominal_hernia",
+	"appendicitis",
+	"cirrhosis",
+	"diverticular_disease",
+	"fecal_diversion",
+	"foreign_body",
+	"functional_disorder",
+	"gallstones",
+	"gerd",
+	"hemorrhoids",
+	"hypoxic",
+	"ileus",
+	"ibd", 
+	"malabsorptive",
+	"motility",
+	"nafld_nash",
+	"nonspecific",
+	"pancreatitis",
+	"transplant",
+	"ulcerative_disease",
+	"other",
+	"all_conditions",
+	"all_mesh", #----------disease
+
+	"location_esophagus",
+	"location_stomach",
+	"location_small_intestine",
+	"location_colon_rectum",
+	"location_anus",
+	"location_liver",
+	"location_biliarytract",
+	"location_gallbladder",
+	"location_pancreas",
+	"location_peritoneum",
+	"location_notspecified", #----------anatomic location
+
+	"br_gni_lmic_hic_only", 
+	"br_gni_lmic", 
+	"br_gni_hic", #------high income vs low income coutry
+	
+	"new_first_submit", #------year of first submit
+
+	"interv_all_intervention_types", #-----intervention types
+
+	"br_trialduration", #------trial duration
+
+	"enrollment_type", #------enrollment type
+
+	"overall_status", #-----status, if we want to redefine discontinuation
+
+	"completion_date", #------completion date
+
+	"were_results_reported", 
+	"months_to_report_results", 
+	"br_time_until_resultsreport_or_present_inmonths" #------how were results reported?
+	)
+
+#####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
+
+	full_gi <- subset(full_gi_df, select = cols_to_add)
+
+                                                               
+                                                               
+# -------------------------------------------------------------------------#
 # ---------                 ACTUAL FIGURES                    -------------
 # -------------------------------------------------------------------------#
 

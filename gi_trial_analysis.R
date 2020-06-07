@@ -12,7 +12,7 @@ names(obtained) <- wants
 
 data.frame(loaded = obtained)
 
-setwd("/Users/jolieshen/Downloads/R stuff") 
+setwd("~/Downloads/R stuff") 
 source('brandonfunctions.r')
 
 
@@ -265,13 +265,6 @@ full_gi_df <-
                                             is.na(.) ~ FALSE, 
                                             TRUE ~ .)))
 
-full_comparison_df <-
-  full_comparison_df %>%
-  mutate_at(.vars = col_regions,
-            .funs = rlang::list2(~case_when(is.na(all_regions) ~ NA, 
-                                            is.na(.) ~ FALSE, 
-                                            TRUE ~ .)))
-
       
                                                  
 full_gi_df %>% bcount(br_gni_lmic_hic) # there are so few that have both HMIC & LMIC in the trial, we'll just convert these to NA below
@@ -376,19 +369,6 @@ full_gi_df <-
             by = c('nct_id' = 'fdaaatracker_registry_id')) %>%
   mutate(br_phase4_ref_ph3 = fct_relevel(br_phase4, 'Phase 2/3-3'),
          br_phase4_ref_ph1 = fct_relevel(br_phase4, 'Phase 1'))
-
-# For a variety of purposes...
-full_spec_combined_df <- 
-  bind_rows(gi = full_gi_df,
-            comparison = full_comparison_df,
-            .id = 'specialty_source')
-
-# ** Special thing for gi**
-"""full_gi_df <- 
-  full_gi_df %>%
-  mutate(neither_cvd_mvt_dem_mal = pmap_lgl(list(cvd, malignancy, movement, dementia), 
-                                            function(a, b, c, d) ! any(a, b, c, d, na.rm=TRUE)))"""
-
 
 # -------------------------------------------------------------------------#
 # ---------                 CLEANING UP STOPS HERE                 -------------
@@ -515,7 +495,22 @@ cols_to_add <- c(
 
 #####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
 
-	full_gi <- subset(full_gi_df, select = cols_to_add)
+full_gi <- subset(full_gi_df, select = cols_to_add)
+
+freq_table <- tibble(
+  category = character(),
+  name = character(),
+  all_num = numeric(),
+  all_total_N = numeric(),
+  all_percentage = numeric(),
+  early_num = numeric(),
+  early_total_N = numeric(),
+  early_percentage = numeric(),
+  late_num = numeric(),
+  late_total_N = numeric(),
+  late_percentage = numeric()
+)
+
 
                                                                
                                                                

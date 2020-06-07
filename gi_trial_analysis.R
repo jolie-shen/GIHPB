@@ -380,7 +380,7 @@ full_gi_df <-
 
 
 ##add in a column representing number of regions 							       
-full_gi <- full_gi %>% mutate(number_of_regions = str_count(all_regions, ";"))
+full_gi_df <- full_gi_df %>% mutate(number_of_regions = str_count(all_regions, ";"))
 
 ######creating a list of all the columns in full_gi_df I think might be useful in the analysis and called it cols_to_add
 cols_to_add <- c(
@@ -415,7 +415,7 @@ cols_to_add <- c(
 	
 	
 	"all_regions", 
-	"number_of_regions"
+	"number_of_regions",
 	#"br_singleregion", this changes any cell that has more than one region into "MultiRegion"
 	#"all_countries", 
 	#"USA_only_facilities", 
@@ -432,8 +432,6 @@ cols_to_add <- c(
 	#------use of blinding
 	
 	"has_dmc", #--------oversight by a data-monitoring committee
-	
-	"overall_status", #---------recruitment status
 	
 	"number_of_arms", 
 	#"all_comp_num_arms", honestly looks exactly the same as number_of_arms #------number of arms
@@ -503,10 +501,25 @@ cols_to_add <- c(
 #####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
 
 full_gi <- subset(full_gi_df, select = cols_to_add)
-							       
-							       
+
+get_freqs <- function(freq_table, main_cat, df) {
+  for (category in unique(na.omit(df$var))) {
+      freq_table <- freq_table %>% add_row(
+        main_category = main_cat,
+        name = category,
+        all_num = length(which(df$var == category)),
+        all_total_N = length(which(!is.na(df$var))),
+        early_num = length(which(df$var == category & df$bintime == "2007_2012")),
+        early_total_N = length(which(!is.na(df$var) & df$bintime == "2007_2012")),
+        late_num = length(which(df$var == category & df$bintime == "2013_2018")),
+        late_total_N = length(which(!is.na(df$var) & df$bintime == "2013_2018"))
+      )
+  }
+  return(freq_table)
+}
+
 freq_table <- tibble(
-  category = character(),
+  main_category = character(),
   name = character(),
   all_num = numeric(),
   all_total_N = numeric(),
@@ -519,8 +532,9 @@ freq_table <- tibble(
   late_percentage = numeric()
 )
 
+freq_table <- get_freqs(freq_table, "Primary Purpose", full_gi %>% mutate(var = primary_purpose))
 
-                                                               
+                                             
                                                                
 # -------------------------------------------------------------------------#
 # ---------                 ACTUAL FIGURES                    -------------

@@ -12,7 +12,7 @@ names(obtained) <- wants
 
 data.frame(loaded = obtained)
 
-setwd("/Users/jolieshen/Downloads/R stuff") 
+setwd("~/Downloads/R stuff") 
 source('brandonfunctions.r')
 
 

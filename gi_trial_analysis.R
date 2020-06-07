@@ -378,56 +378,65 @@ full_gi_df <-
 # ---------                JOLIES ANALYSIS                -------------
 # -------------------------------------------------------------------------#
 
- ######creating a list of all the columns in full_gi_df I think might be useful in the analysis and called it cols_to_add
 
+##add in a column representing number of regions 							       
+full_gi <- full_gi %>% mutate(number_of_regions = str_count(all_regions, ";"))
+
+######creating a list of all the columns in full_gi_df I think might be useful in the analysis and called it cols_to_add
 cols_to_add <- c(
 	"nct_id", #------ID
 
 	"early_discontinuation", #------PRIMARY OUTCOME OF EARLY DISCONTINUATION
 
-	"industry_any2", 
-	"new_industry_any3_ref_nih", 
-	"industry_any2b", 
-	"new_industry_any2b_ref_usgovt", #-----Sponsorship
+	"industry_any2", #changes all US Govt to NIH, similar to new_industry_any3_ref_nih except industry_any2 has an added category of US Fed
+	#"new_industry_any3_ref_nih", 
+	#"industry_any2b", 
+	#"new_industry_any2b_ref_usgovt", #-----Sponsorship
 
-	"phase", 
-	"br_phase4_ref_ph3", 
-	"br_phase4_ref_ph1", 
-	"br_phase2", 
-	"new_br_phase2", #----Phase
+	"phase", #problem with this is it has "Early Phase 1, and Phase1/Phase2 and Phas 2/Phase3 categories. Not sure what to do about these
+	#"br_phase4_ref_ph3", 
+	#"br_phase4_ref_ph1", 
+	#"br_phase2", 
+	#"new_br_phase2", #----Phase
 
 	"enrollment", #-----Number of participants enrolled
 	
 	"bintime", #------duration 2007-2012, 2013-2018
 	
-	"new_primary_purpose_treatment", 
-	"new_primary_purpose_treatment2", 
+	#"new_primary_purpose_treatment", 
+	#"new_primary_purpose_treatment2", 
 	"primary_purpose", #----primary objective of the intervention
 	
 	"interv_all_intervention_types", #-----type of intervention
 	
-	"new_num_facilities2", 
+	#"new_num_facilities2", 
 	"num_facilities",  #------number of sites
 	
-	"br_singleregion", 
+	
+	
 	"all_regions", 
-	"all_countries", 
-	"USA_only_facilities", 
-	"US_facility", 
+	"number_of_regions"
+	#"br_singleregion", this changes any cell that has more than one region into "MultiRegion"
+	#"all_countries", 
+	#"USA_only_facilities", 
+	#"US_facility", 
 	"num_countries",  #-------Geographic region of sites
 	
-	"allocation", 
-	"br_allocation", 
-	"masking", 
-	"br_masking1", 
-	"br_masking2", #------use of randomization and blinding
+	"allocation",
+	#"br_allocation" #this changes all "NA" from allocation into "non-randomized" 
+	 #-----use of randomization 
+	
+	#"masking", instead of "None", is called "None (Open label)" used br_masking2 instead just to make text shorter
+	#"br_masking1", same as br_masking2 except has quadruple blinded
+	"br_masking2", #changes all "quadruple blinded" in br_masking2 to "double", changes all "None (Open Label)" to "None"
+	#------use of blinding
 	
 	"has_dmc", #--------oversight by a data-monitoring committee
 	
 	"overall_status", #---------recruitment status
 	
 	"number_of_arms", 
-	"all_comp_num_arms", #------number of arms
+	#"all_comp_num_arms", honestly looks exactly the same as number_of_arms #------number of arms
 
 	"infection_any",
 	"infection_helminth",
@@ -472,13 +481,11 @@ cols_to_add <- c(
 	"location_peritoneum",
 	"location_notspecified", #----------anatomic location
 
-	"br_gni_lmic_hic_only", 
-	"br_gni_lmic", 
-	"br_gni_hic", #------high income vs low income coutry
+	#"br_gni_lmic_hic_only", 
+	#"br_gni_lmic", 
+	#"br_gni_hic", #------high income vs low income coutry
 	
 	"new_first_submit", #------year of first submit
-
-	"interv_all_intervention_types", #-----intervention types
 
 	"br_trialduration", #------trial duration
 
@@ -489,14 +496,15 @@ cols_to_add <- c(
 	"completion_date", #------completion date
 
 	"were_results_reported", 
-	"months_to_report_results", 
+	#"months_to_report_results", don't know what this is, mostly NAs 
 	"br_time_until_resultsreport_or_present_inmonths" #------how were results reported?
 	)
 
 #####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
 
 full_gi <- subset(full_gi_df, select = cols_to_add)
-
+							       
+							       
 freq_table <- tibble(
   category = character(),
   name = character(),

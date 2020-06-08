@@ -503,6 +503,11 @@ cols_to_add <- c(
 full_gi <- subset(full_gi_df, select = cols_to_add)
 
 get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
+  marginal_indexes <- c()
+  for (i in 1:length(col_comparisons)) {
+    marginal_indexes <- c(marginal_indexes, 3 + (i * 2))
+  }
+
   if (treat_as_csv) {
     uniques <- c()
     for (val in na.omit(df$var)) {
@@ -533,14 +538,28 @@ get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
       }
       row <- c(row, length(which(!is.na(df$var) & df$col == cc)))
     }
+
+    row <- c(row, round(100 * as.numeric(row[3]) / as.numeric(row[4]), 1))
+    row_chi_sq <- c()
+    for (i in marginal_indexes) {
+      row_chi_sq <- c(row_chi_sq, row[i])
+      row_chi_sq <- c(row_chi_sq, as.numeric(row[i + 1]) - as.numeric(row[i]))
+      row <- c(row, round(100 * as.numeric(row[i]) / as.numeric(row[i + 1]), 1))
+    }
+    chi_sq_res <- chisq.test(apply(matrix(row_chi_sq, nrow = 2, ncol = 2), c(1,2), as.numeric))
+    row <- c(row, chi_sq_res$p.value, 0)
+
     all_rows <- c(all_rows, row)
   }
 
-  num_cols <- 4 + (2 * length(col_comparisons))
-  return(matrix(all_rows, ncol = num_cols, byrow = TRUE))
+  num_cols <- 7 + (3 * length(col_comparisons))
+  output_matrix <- matrix(all_rows, ncol = num_cols, byrow = TRUE)
+
+  all_chi_sq <- chisq.test(apply(output_matrix[, marginal_indexes], c(1,2), as.numeric))
+  output_matrix[,13] <- all_chi_sq$p.value
+
+  return(output_matrix)
 }
-
-
 
 for (iter in 1:1) {
   if (iter == 1) {

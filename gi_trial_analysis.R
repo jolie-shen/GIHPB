@@ -596,6 +596,8 @@ for (iter in 1:1) {
     ifelse(!is.na(num_countries) & num_countries == 2, "Two", 
     ifelse(!is.na(num_countries) & num_countries == 1, "One", NA)))), cols)
 
+  regions <- get_freqs("Region", already_mutated %>% mutate(var = all_regions), cols, TRUE)
+
   #Number of Regions
   num_regions <- get_freqs("Number of Regions", already_mutated %>% mutate(var = 
     ifelse(!is.na(number_of_regions) & number_of_regions >= 3, "Three or more", 
@@ -616,7 +618,7 @@ for (iter in 1:1) {
   reported <- get_freqs("Were Results Reported", already_mutated %>% mutate(var = 
     ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))), cols)
 
-  output <- rbind(pp, phase, study_arms, masking, randomized, has_dmc, num_countries, num_regions, num_facilities, sponsor, reported)
+  output <- rbind(pp, phase, study_arms, masking, randomized, has_dmc, num_countries, regions, num_regions, num_facilities, sponsor, reported)
   print(output)
 }
 

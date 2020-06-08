@@ -500,13 +500,18 @@ cols_to_add <- c(
 #####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
 
 full_gi <- subset(full_gi_df, select = cols_to_add)
-
+							       
+##created a new function that does the p-values and frequency tables
+#---main_cat = variable we are looking at (i.e primary purpose), df = full_gi in this case but columns (i.e. "region") each time it's passed in
+#---col_comparison = different variable we want ot compare on (in table 1 it's time bin, in table2 it's industry)
+#----treat_as_csv = FALSE means that we are going to treat the row as if it's a list of variables like in a CSV. 
+#If you call the get_freqs function without specifying, the default is FALSE meaning it won't treat it as a CSV
+				       
 get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
-  marginal_indexes <- c()
-  for (i in 1:length(col_comparisons)) {
-    marginal_indexes <- c(marginal_indexes, 3 + (i * 2))
-  }
 
+	
+#if you do have a treat_as_csv (such as in regions, it loops and finds all the unique values and counts it for each of the region). 
+#If we say FALSE or we don't say anything when we call get_freq, lines 515-522 are not executed and 523-526 is executed.
   if (treat_as_csv) {
     uniques <- c()
     for (val in na.omit(df$var)) {
@@ -516,9 +521,13 @@ get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
     }
     uniques <- unique(uniques)
   } else {
+#takes out NAs in all rows
     uniques <- unique(na.omit(df$var))
   }
 
+#all_rows initializes a variables to be all the rows (i.e. randomization, masking, disease type, etc.) and we will use it to populate across each row
+#category variable refers to all outputs (i.e. Africa, two or more, NIH, etc.)
+#Here we are either counting if a category event (i.e. Africa) occurs in the cell at all AND counting each time it matches the cell exactly
   all_rows <- c()
   for (category in unique(uniques)) {
     row <- c(main_cat, category)
@@ -527,20 +536,34 @@ get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
     } else {
       row <- c(row, length(which(df$var == category)))
     }
-    
+
+#Counts all the rows that are not NA, ie. this is the column for total N in Table 1
     row <- c(row, length(which(!is.na(df$var))))
-    for (cc in col_comparisons) {
+	  
+#Loop through each of the col_comparisons (i.e. bintimes) what we just did above for the totals. For example, we count the 
+#number of times when both category: "phase 1" and cc: "2003-2008" are true.
+for (cc in col_comparisons) {
       if (treat_as_csv) {
         row <- c(row, length(which(str_count(df$var, category) >= 1 & df$col == cc)))
       } else {
         row <- c(row, length(which(df$var == category & df$col == cc)))
       }
+#total count of everything in that bin where the variable is not NA. This number should be the same for every category
       row <- c(row, length(which(!is.na(df$var) & df$col == cc)))
     }
 
+#Find total percentage of each category (i.e. how many phase 1 trials occured across all bins) 
     row <- c(row, round(100 * as.numeric(row[3]) / as.numeric(row[4]), 1))
-    row_chi_sq <- c()
-    for (i in marginal_indexes) {
+
+#Now we will do chi squre  by computing two chi square values. One for the category and one for the main_cat  
+row_chi_sq <- c()
+	  
+#marginal_indexes are the indexes that the *counts* are in that is first created to be empty and gets populated in the next line	
+	marginal_indexes <- c()
+  for (i in 1:length(col_comparisons)) {
+    marginal_indexes <- c(marginal_indexes, 3 + (i * 2))
+  }
+for (i in marginal_indexes) {
       row_chi_sq <- c(row_chi_sq, row[i])
       row_chi_sq <- c(row_chi_sq, as.numeric(row[i + 1]) - as.numeric(row[i]))
       row <- c(row, round(100 * as.numeric(row[i]) / as.numeric(row[i + 1]), 1))

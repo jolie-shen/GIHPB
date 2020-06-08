@@ -502,39 +502,106 @@ cols_to_add <- c(
 
 full_gi <- subset(full_gi_df, select = cols_to_add)
 
-get_freqs <- function(freq_table, main_cat, df) {
-  for (category in unique(na.omit(df$var))) {
-      freq_table <- freq_table %>% add_row(
-        main_category = main_cat,
-        name = category,
-        all_num = length(which(df$var == category)),
-        all_total_N = length(which(!is.na(df$var))),
-        early_num = length(which(df$var == category & df$bintime == "2007_2012")),
-        early_total_N = length(which(!is.na(df$var) & df$bintime == "2007_2012")),
-        late_num = length(which(df$var == category & df$bintime == "2013_2018")),
-        late_total_N = length(which(!is.na(df$var) & df$bintime == "2013_2018"))
-      )
+get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
+  if (treat_as_csv) {
+    uniques <- c()
+    for (val in na.omit(df$var)) {
+      for (str in strsplit(val, ";")) {
+        uniques <- c(uniques, trimws(str))
+      }
+    }
+    uniques <- unique(uniques)
+  } else {
+    uniques <- unique(na.omit(df$var))
   }
-  return(freq_table)
+
+  all_rows <- c()
+  for (category in unique(uniques)) {
+    row <- c(main_cat, category)
+    if (treat_as_csv) {
+      row <- c(row, length(which(str_count(df$var, category) >= 1)))
+    } else {
+      row <- c(row, length(which(df$var == category)))
+    }
+    
+    row <- c(row, length(which(!is.na(df$var))))
+    for (cc in col_comparisons) {
+      if (treat_as_csv) {
+        row <- c(row, length(which(str_count(df$var, category) >= 1 & df$col == cc)))
+      } else {
+        row <- c(row, length(which(df$var == category & df$col == cc)))
+      }
+      row <- c(row, length(which(!is.na(df$var) & df$col == cc)))
+    }
+    all_rows <- c(all_rows, row)
+  }
+
+  num_cols <- 4 + (2 * length(col_comparisons))
+  return(matrix(all_rows, ncol = num_cols, byrow = TRUE))
 }
 
-freq_table <- tibble(
-  main_category = character(),
-  name = character(),
-  all_num = numeric(),
-  all_total_N = numeric(),
-  all_percentage = numeric(),
-  early_num = numeric(),
-  early_total_N = numeric(),
-  early_percentage = numeric(),
-  late_num = numeric(),
-  late_total_N = numeric(),
-  late_percentage = numeric()
-)
 
-freq_table <- get_freqs(freq_table, "Primary Purpose", full_gi %>% mutate(var = primary_purpose))
 
-                                             
+for (iter in 1:1) {
+  if (iter == 1) {
+    cols <- c("2007_2012", "2013_2018")
+    already_mutated <- full_gi %>% mutate(col = bintime)
+  } else if (iter == 2) {
+    cols <- c("Industry", "NIH", "U.S. Fed", "Other")
+    already_mutated <- full_gi %>% mutate(col = industry_any2)
+  }
+
+    #Primary Purpose						       
+  pp <- get_freqs("Primary Purpose", already_mutated %>% mutate(var = primary_purpose), cols)
+  #Phase
+  phase <- get_freqs("Phase", already_mutated %>% mutate(var = phase), cols)
+  #Study Arms
+  study_arms <- get_freqs("Study Arms", already_mutated %>% mutate(var = 
+    ifelse(!is.na(number_of_arms) & number_of_arms >= 3, "Three or more", 
+    ifelse(!is.na(number_of_arms) & number_of_arms == 2, "Two", 
+    ifelse(!is.na(number_of_arms) & number_of_arms == 1, "One", NA)))), cols)
+  #Masking
+  masking <- get_freqs("Masking", already_mutated %>% mutate(var = br_masking2), cols)
+  #Randomized
+  randomized <- get_freqs("Randomized", already_mutated %>% mutate(var = allocation), cols)
+
+  #Had Data Monitoring Committe, code is slightly different because this is a boolean column (True/False)
+  has_dmc <- get_freqs("Had Data Monitoring Committee", already_mutated %>% mutate(var = 
+    ifelse(!is.na(has_dmc) & has_dmc, "Yes", ifelse(!is.na(has_dmc), "No", NA))), cols)
+
+  #Centers to skip for now because need to figure out how to separate semicolons COME BACK TO THIS
+
+  #Number of Countries
+  num_countries <- get_freqs("Number of Countries", already_mutated %>% mutate(var = 
+    ifelse(!is.na(num_countries) & num_countries >= 3, "Three or more", 
+    ifelse(!is.na(num_countries) & num_countries == 2, "Two", 
+    ifelse(!is.na(num_countries) & num_countries == 1, "One", NA)))), cols)
+
+  #Number of Regions
+  num_regions <- get_freqs("Number of Regions", already_mutated %>% mutate(var = 
+    ifelse(!is.na(number_of_regions) & number_of_regions >= 3, "Three or more", 
+    ifelse(!is.na(number_of_regions) & number_of_regions == 2, "Two", 
+    ifelse(!is.na(number_of_regions) & number_of_regions == 1, "One", NA)))), cols)
+
+  #Number of Facilities
+  num_facilities <- get_freqs("Number of Facilities", already_mutated %>% mutate(var = 
+    ifelse(!is.na(num_facilities) & num_facilities >10, "More than Ten",
+    ifelse(!is.na(num_facilities) & num_facilities >= 3 & num_facilities <=10, "Three to Ten", 
+    ifelse(!is.na(num_facilities) & num_facilities == 2, "Two", 
+    ifelse(!is.na(num_facilities) & num_facilities == 1, "One", NA))))), cols)
+
+  #Sponsor Type
+  sponsor <- get_freqs("Sponsor Type", already_mutated %>% mutate(var = industry_any2), cols)
+
+  #Were Results Reported? code is slightly different because this is a boolean column (True/False)
+  reported <- get_freqs("Were Results Reported", already_mutated %>% mutate(var = 
+    ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))), cols)
+
+  output <- rbind(pp, phase, study_arms, masking, randomized, has_dmc, num_countries, num_regions, num_facilities, sponsor, reported)
+  print(output)
+}
+
+                                     
                                                                
 # -------------------------------------------------------------------------#
 # ---------                 ACTUAL FIGURES                    -------------

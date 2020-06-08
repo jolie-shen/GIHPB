@@ -587,7 +587,7 @@ if(!treat_as_csv) {
   return(output_matrix)
 }
 
-do_table_analysis <- function(already_mutated, cols) {
+do_table_analysis <- function(already_mutated, cols, include_disease) {
       #Primary Purpose						       
   pp <- get_freqs("Primary Purpose", already_mutated %>% mutate(var = primary_purpose), cols)
   #Phase
@@ -597,8 +597,10 @@ do_table_analysis <- function(already_mutated, cols) {
     ifelse(!is.na(number_of_arms) & number_of_arms >= 3, "Three or more", 
     ifelse(!is.na(number_of_arms) & number_of_arms == 2, "Two", 
     ifelse(!is.na(number_of_arms) & number_of_arms == 1, "One", NA)))), cols)
+
   #Masking
   masking <- get_freqs("Masking", already_mutated %>% mutate(var = br_masking2), cols)
+	
   #Randomized
   randomized <- get_freqs("Randomized", already_mutated %>% mutate(var = allocation), cols)
 
@@ -762,7 +764,7 @@ do_table_analysis <- function(already_mutated, cols) {
 		#NOT SPECIFIED 
 			get_freqs("Not Specified", already_mutated %>% mutate(var = 
 				ifelse(!is.na(location_notspecified) & location_notspecified, "Yes", ifelse(!is.na(location_notspecified), "No", NA))), cols))
-	
+if(include_disease){
   output <- rbind(
 	  all_diseases,
 	  pp, 
@@ -777,53 +779,29 @@ do_table_analysis <- function(already_mutated, cols) {
 	  num_regions, 
 	  num_facilities, 
 	  sponsor, 
-	  reported,
-  	  infection_any,
-	infection_helminth,
-	infection_intestines,
-	infection_hepatitis,
-	neoplasia_primary,
-	neoplasia_metastasis,
-	neoplasia_disease,
-	abdominal_hernia,
-	appendicitis,
-	cirrhosis,
-	diverticular_disease,
-	fecal_diversion,
-	foreign_body,
-	functional_disorder,
-	gallstones,
-	gerd,
-	hemorrhoids,
-	hypoxic,
-	ileus,
-	ibd, 
-	malabsorptive,
-	motility,
-	nafld_nash,
-	nonspecific,
-	pancreatitis,
-	transplant,
-	ulcerative_disease,
-	other,
-	location_esophagus,
-	location_stomach,
-	location_small_intestine,
-	location_colon_rectum,
-	location_anus,
-	location_liver,
-	location_biliarytract,
-	location_gallbladder,
-	location_pancreas,
-	location_peritoneum,
-	location_notspecified
-  			)
+	  reported)
+	} else {
+	  output <- rbind(
+	  pp, 
+	  phase, 
+	  study_arms, 
+	  masking, 
+	  enrollment, 
+	  randomized, 
+	  has_dmc, 
+	  num_countries, 
+	  regions, 
+	  num_regions, 
+	  num_facilities, 
+	  sponsor, 
+	  reported)
+	}
   return(output)
 }
 
 #------TABLE 1 SIMILAR TO OPHTHO TRIAL------#	
 #-----STRATIFIED BY YEAR USING BIN--------#							       
-table1 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = bintime), c("2007_2012", "2013_2018")))
+table1 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = bintime), c("2007_2012", "2013_2018"), FALSE)) 
 colnames(table1) <- c(
 	"Trial Characteristic", 
 	"Value", 
@@ -841,7 +819,7 @@ colnames(table1) <- c(
 
 #------TABLE 2 SIMILAR TO OPHTHO TRIAL------#	
 #-----STRATIFIED BY SPONSORSHIP--------#							      
-table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any2), c("Industry", "NIH", "U.S. Fed", "Other")))
+table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any2), c("Industry", "NIH", "U.S. Fed", "Other"), TRUE))
 colnames(table2) <- c(
 	"Trial Characteristic", 
 	"Value", 

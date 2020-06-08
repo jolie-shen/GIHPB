@@ -561,16 +561,8 @@ get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
   return(output_matrix)
 }
 
-for (iter in 1:1) {
-  if (iter == 1) {
-    cols <- c("2007_2012", "2013_2018")
-    already_mutated <- full_gi %>% mutate(col = bintime)
-  } else if (iter == 2) {
-    cols <- c("Industry", "NIH", "U.S. Fed", "Other")
-    already_mutated <- full_gi %>% mutate(col = industry_any2)
-  }
-
-    #Primary Purpose						       
+do_table_analysis <- function(already_mutated, cols) {
+      #Primary Purpose						       
   pp <- get_freqs("Primary Purpose", already_mutated %>% mutate(var = primary_purpose), cols)
   #Phase
   phase <- get_freqs("Phase", already_mutated %>% mutate(var = phase), cols)
@@ -619,10 +611,13 @@ for (iter in 1:1) {
     ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))), cols)
 
   output <- rbind(pp, phase, study_arms, masking, randomized, has_dmc, num_countries, regions, num_regions, num_facilities, sponsor, reported)
-  print(output)
+  return(output)
 }
 
-                                     
+table1 <- do_table_analysis(full_gi %>% mutate(col = bintime), c("2007_2012", "2013_2018"))
+table2 <- do_table_analysis(full_gi %>% mutate(col = industry_any2), c("Industry", "NIH", "U.S. Fed", "Other"))
+
+                                   
                                                                
 # -------------------------------------------------------------------------#
 # ---------                 ACTUAL FIGURES                    -------------

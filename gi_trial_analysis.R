@@ -509,7 +509,6 @@ full_gi <- subset(full_gi_df, select = cols_to_add)
 				       
 get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
 
-	
 #if you do have a treat_as_csv (such as in regions, it loops and finds all the unique values and counts it for each of the region). 
 #If we say FALSE or we don't say anything when we call get_freq, lines 515-522 are not executed and 523-526 is executed.
   if (treat_as_csv) {
@@ -568,8 +567,9 @@ for (i in marginal_indexes) {
       row_chi_sq <- c(row_chi_sq, as.numeric(row[i + 1]) - as.numeric(row[i]))
       row <- c(row, round(100 * as.numeric(row[i]) / as.numeric(row[i + 1]), 1))
     }
+#converts previous list of 4 numbers into a 2x2 matrix to do first chi square on testing each specific subcategory
     chi_sq_res <- chisq.test(apply(matrix(row_chi_sq, nrow = 2, ncol = 2), c(1,2), as.numeric))
-    row <- c(row, chi_sq_res$p.value, 0)
+    row <- c(row, chi_sq_res$p.value, NA)
 
     all_rows <- c(all_rows, row)
   }
@@ -577,9 +577,13 @@ for (i in marginal_indexes) {
   num_cols <- 7 + (3 * length(col_comparisons))
   output_matrix <- matrix(all_rows, ncol = num_cols, byrow = TRUE)
 
-  all_chi_sq <- chisq.test(apply(output_matrix[, marginal_indexes], c(1,2), as.numeric))
-  output_matrix[,13] <- all_chi_sq$p.value
-
+#Chi square on the entire category. For example, this would test the null hypothesis that 2003-2008 bin had no relationship with phase.
+#compare this to the previous chi square that tested the null hypothesis that 2003-2008 bin had no relationship with if it was phase 1 or not phase 1 
+#This can't be done on any variable that is "treat_as_csv"
+if(!treat_as_csv) {
+	all_chi_sq <- chisq.test(apply(output_matrix[, marginal_indexes], c(1,2), as.numeric))
+	output_matrix[,13] <- all_chi_sq$p.value
+	}
   return(output_matrix)
 }
 
@@ -602,15 +606,14 @@ do_table_analysis <- function(already_mutated, cols) {
   has_dmc <- get_freqs("Had Data Monitoring Committee", already_mutated %>% mutate(var = 
     ifelse(!is.na(has_dmc) & has_dmc, "Yes", ifelse(!is.na(has_dmc), "No", NA))), cols)
 
-  #Centers to skip for now because need to figure out how to separate semicolons COME BACK TO THIS
-
+  #Centers, this is the only one that has TRUE for "treat_as_csv"
+  regions <- get_freqs("Region", already_mutated %>% mutate(var = all_regions), cols, TRUE)
+ 
   #Number of Countries
   num_countries <- get_freqs("Number of Countries", already_mutated %>% mutate(var = 
     ifelse(!is.na(num_countries) & num_countries >= 3, "Three or more", 
     ifelse(!is.na(num_countries) & num_countries == 2, "Two", 
     ifelse(!is.na(num_countries) & num_countries == 1, "One", NA)))), cols)
-
-  regions <- get_freqs("Region", already_mutated %>% mutate(var = all_regions), cols, TRUE)
 
   #Number of Regions
   num_regions <- get_freqs("Number of Regions", already_mutated %>% mutate(var = 

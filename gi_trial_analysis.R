@@ -841,6 +841,7 @@ colnames(table2) <- c(
 	"p-value for row", 
 	"p-value for trial characteristic")
 
+#-------UNIVARIATE ANALYSIS--------#				
 table3 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = early_discontinuation), c(TRUE, FALSE), TRUE))
 colnames(table3) <- c(
 	"Trial Characteristic", 

@@ -591,9 +591,9 @@ do_table_analysis <- function(already_mutated, cols) {
 
   #Number of Regions
   num_regions <- get_freqs("Number of Regions", already_mutated %>% mutate(var = 
-    ifelse(!is.na(number_of_regions) & number_of_regions >= 3, "Three or more", 
-    ifelse(!is.na(number_of_regions) & number_of_regions == 2, "Two", 
-    ifelse(!is.na(number_of_regions) & number_of_regions == 1, "One", NA)))), cols)
+    ifelse(!is.na(num_regions) & num_regions >= 3, "Three or more", 
+    ifelse(!is.na(num_regions) & num_regions == 2, "Two", 
+    ifelse(!is.na(num_regions) & num_regions == 1, "One", NA)))), cols)
 
   #Number of Facilities
   num_facilities <- get_freqs("Number of Facilities", already_mutated %>% mutate(var = 

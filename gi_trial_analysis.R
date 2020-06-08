@@ -580,10 +580,10 @@ for (i in marginal_indexes) {
 #Chi square on the entire category. For example, this would test the null hypothesis that 2003-2008 bin had no relationship with phase.
 #compare this to the previous chi square that tested the null hypothesis that 2003-2008 bin had no relationship with if it was phase 1 or not phase 1 
 #This can't be done on any variable that is "treat_as_csv"
-if(!treat_as_csv) {
-	all_chi_sq <- chisq.test(apply(output_matrix[, marginal_indexes], c(1,2), as.numeric))
-	output_matrix[,num_cols] <- all_chi_sq$p.value
-	}
+  if(!treat_as_csv) {
+    try(all_chi_sq <- chisq.test(apply(output_matrix[, marginal_indexes], c(1,2), as.numeric)), silent = TRUE)
+    try(output_matrix[,num_cols] <- all_chi_sq$p.value, silent = TRUE)
+  }
   return(output_matrix)
 }
 
@@ -644,126 +644,126 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
     ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))), cols)
 
 
-		#INFECTIONS ANY
-		all_diseases <- rbind(
-			get_freqs("Any Infection", already_mutated %>% mutate(var = 
-				ifelse(!is.na(infection_any) & infection_any, "Yes", ifelse(!is.na(infection_any), "No", NA))), cols),
-			#HELMINTHS
-			get_freqs("Helminth Infection", already_mutated %>% mutate(var = 
-				ifelse(!is.na(infection_helminth) & infection_helminth, "Yes", ifelse(!is.na(infection_helminth), "No", NA))), cols),
-			#INTESTINES
-			get_freqs("Intestinal Infection", already_mutated %>% mutate(var = 
-				ifelse(!is.na(infection_intestines) & infection_intestines, "Yes", ifelse(!is.na(infection_intestines), "No", NA))), cols),
-			#HEPATITIS
-			get_freqs("Heptatitis", already_mutated %>% mutate(var = 
-				ifelse(!is.na(infection_hepatitis) & infection_hepatitis, "Yes", ifelse(!is.na(infection_hepatitis), "No", NA))), cols),
-		#NEOPLASIA DISEASE
-			get_freqs("Any Neoplasia", already_mutated %>% mutate(var = 
-				ifelse(!is.na(neoplasia_disease) & neoplasia_disease, "Yes", ifelse(!is.na(neoplasia_disease), "No", NA))), cols),
-			#PRIMARY
-			get_freqs("Primary Neoplasia", already_mutated %>% mutate(var = 
-				ifelse(!is.na(neoplasia_primary) & neoplasia_primary, "Yes", ifelse(!is.na(neoplasia_primary), "No", NA))), cols),
-			#METASTASIS
-			get_freqs("Metastatic Neoplasia", already_mutated %>% mutate(var = 
-				ifelse(!is.na(neoplasia_metastasis) & neoplasia_metastasis, "Yes", ifelse(!is.na(neoplasia_metastasis), "No", NA))), cols),
-		#ABDOMINAL HERNIA
-			get_freqs("Abdominal Hernia", already_mutated %>% mutate(var = 
-				ifelse(!is.na(abdominal_hernia) & abdominal_hernia, "Yes", ifelse(!is.na(abdominal_hernia), "No", NA))), cols),
-		#APPENDICITIS
-			get_freqs("Abdominal Hernia", already_mutated %>% mutate(var = 
-				ifelse(!is.na(abdominal_hernia) & abdominal_hernia, "Yes", ifelse(!is.na(abdominal_hernia), "No", NA))), cols),
-		#CIRRHOSIS
-			get_freqs("Appendicitis", already_mutated %>% mutate(var = 
-				ifelse(!is.na(appendicitis) & appendicitis, "Yes", ifelse(!is.na(appendicitis), "No", NA))), cols),
-		#DIVERTICULAR DISEASE
-			get_freqs("Cirrhosis", already_mutated %>% mutate(var = 
-				ifelse(!is.na(cirrhosis) & cirrhosis, "Yes", ifelse(!is.na(cirrhosis), "No", NA))), cols),
-		#FECAL DIVERSION
-			get_freqs("Diverticular Disease", already_mutated %>% mutate(var = 
-				ifelse(!is.na(diverticular_disease) & diverticular_disease, "Yes", ifelse(!is.na(diverticular_disease), "No", NA))), cols),
-		#FOREIGN BODY
-			get_freqs("Fecal Diversion", already_mutated %>% mutate(var = 
-				ifelse(!is.na(fecal_diversion) & fecal_diversion, "Yes", ifelse(!is.na(fecal_diversion), "No", NA))), cols),
-		#FUNCTIONAL DISORDER
-			get_freqs("Foreign Body", already_mutated %>% mutate(var = 
-				ifelse(!is.na(foreign_body) & foreign_body, "Yes", ifelse(!is.na(foreign_body), "No", NA))), cols),
-		#GALLSTONES
-			get_freqs("Gallstones", already_mutated %>% mutate(var = 
-				ifelse(!is.na(gallstones) & gallstones, "Yes", ifelse(!is.na(gallstones), "No", NA))), cols),
-		#GERD
-			get_freqs("GERD", already_mutated %>% mutate(var = 
-				ifelse(!is.na(gerd) & gerd, "Yes", ifelse(!is.na(gerd), "No", NA))), cols),
-		#HEMORRHOIDS
-			get_freqs("Hemorhoids", already_mutated %>% mutate(var = 
-				ifelse(!is.na(hemorrhoids) & hemorrhoids, "Yes", ifelse(!is.na(hemorrhoids), "No", NA))), cols),
-		#HYPOXIC DISEASE
-			get_freqs("Hypoxic Disease", already_mutated %>% mutate(var = 
-				ifelse(!is.na(hypoxic) & hypoxic, "Yes", ifelse(!is.na(hypoxic), "No", NA))), cols),
-		#ILEUS
-			get_freqs("Ileus", already_mutated %>% mutate(var = 
-				ifelse(!is.na(ileus) & ileus, "Yes", ifelse(!is.na(ileus), "No", NA))), cols),
-		#IBD
-			get_freqs("Irritable Bowel Disease", already_mutated %>% mutate(var = 
-				ifelse(!is.na(ibd) & ibd, "Yes", ifelse(!is.na(ibd), "No", NA))), cols),
-		#MALABSORPTION
-			get_freqs("Malabsorptive Disease", already_mutated %>% mutate(var = 
-				ifelse(!is.na(malabsorptive) & malabsorptive, "Yes", ifelse(!is.na(malabsorptive), "No", NA))), cols),
-		#MOTILITY
-			get_freqs("Motility Disease", already_mutated %>% mutate(var = 
-				ifelse(!is.na(motility) & motility, "Yes", ifelse(!is.na(motility), "No", NA))), cols),
-		#NAFLD/NASH
-			get_freqs("NALFD or NASH", already_mutated %>% mutate(var = 
-				ifelse(!is.na(nafld_nash) & nafld_nash, "Yes", ifelse(!is.na(nafld_nash), "No", NA))), cols),
-		#NONSPECIFIC
-			get_freqs("Nonspecific", already_mutated %>% mutate(var = 
-				ifelse(!is.na(nonspecific) & nonspecific, "Yes", ifelse(!is.na(nonspecific), "No", NA))), cols),
-		#PANCREATITIS
-			get_freqs("Pancreatitis", already_mutated %>% mutate(var = 
-				ifelse(!is.na(pancreatitis) & pancreatitis, "Yes", ifelse(!is.na(pancreatitis), "No", NA))), cols),
-		#TRANSPLANT
-			get_freqs("Transplant", already_mutated %>% mutate(var = 
-				ifelse(!is.na(transplant) & transplant, "Yes", ifelse(!is.na(transplant), "No", NA))), cols),
-		#ULCERATIVE DISEASE
-			get_freqs("Ulcerative Disease", already_mutated %>% mutate(var = 
-				ifelse(!is.na(ulcerative_disease) & ulcerative_disease, "Yes", ifelse(!is.na(ulcerative_disease), "No", NA))), cols),
-		#OTHER
-			get_freqs("Other", already_mutated %>% mutate(var = 
-				ifelse(!is.na(other) & other, "Yes", ifelse(!is.na(other), "No", NA))), cols),
+  #INFECTIONS ANY
+  all_diseases <- rbind(
+    get_freqs("Any Infection", already_mutated %>% mutate(var = 
+      ifelse(!is.na(infection_any) & infection_any, "Yes", ifelse(!is.na(infection_any), "No", NA))), cols),
+    #HELMINTHS
+    get_freqs("Helminth Infection", already_mutated %>% mutate(var = 
+      ifelse(!is.na(infection_helminth) & infection_helminth, "Yes", ifelse(!is.na(infection_helminth), "No", NA))), cols),
+    #INTESTINES
+    get_freqs("Intestinal Infection", already_mutated %>% mutate(var = 
+      ifelse(!is.na(infection_intestines) & infection_intestines, "Yes", ifelse(!is.na(infection_intestines), "No", NA))), cols),
+    #HEPATITIS
+    get_freqs("Heptatitis", already_mutated %>% mutate(var = 
+      ifelse(!is.na(infection_hepatitis) & infection_hepatitis, "Yes", ifelse(!is.na(infection_hepatitis), "No", NA))), cols),
+  #NEOPLASIA DISEASE
+    get_freqs("Any Neoplasia", already_mutated %>% mutate(var = 
+      ifelse(!is.na(neoplasia_disease) & neoplasia_disease, "Yes", ifelse(!is.na(neoplasia_disease), "No", NA))), cols),
+    #PRIMARY
+    get_freqs("Primary Neoplasia", already_mutated %>% mutate(var = 
+      ifelse(!is.na(neoplasia_primary) & neoplasia_primary, "Yes", ifelse(!is.na(neoplasia_primary), "No", NA))), cols),
+    #METASTASIS
+    get_freqs("Metastatic Neoplasia", already_mutated %>% mutate(var = 
+      ifelse(!is.na(neoplasia_metastasis) & neoplasia_metastasis, "Yes", ifelse(!is.na(neoplasia_metastasis), "No", NA))), cols),
+  #ABDOMINAL HERNIA
+    get_freqs("Abdominal Hernia", already_mutated %>% mutate(var = 
+      ifelse(!is.na(abdominal_hernia) & abdominal_hernia, "Yes", ifelse(!is.na(abdominal_hernia), "No", NA))), cols),
+  #APPENDICITIS
+    get_freqs("Abdominal Hernia", already_mutated %>% mutate(var = 
+      ifelse(!is.na(abdominal_hernia) & abdominal_hernia, "Yes", ifelse(!is.na(abdominal_hernia), "No", NA))), cols),
+  #CIRRHOSIS
+    get_freqs("Appendicitis", already_mutated %>% mutate(var = 
+      ifelse(!is.na(appendicitis) & appendicitis, "Yes", ifelse(!is.na(appendicitis), "No", NA))), cols),
+  #DIVERTICULAR DISEASE
+    get_freqs("Cirrhosis", already_mutated %>% mutate(var = 
+      ifelse(!is.na(cirrhosis) & cirrhosis, "Yes", ifelse(!is.na(cirrhosis), "No", NA))), cols),
+  #FECAL DIVERSION
+    get_freqs("Diverticular Disease", already_mutated %>% mutate(var = 
+      ifelse(!is.na(diverticular_disease) & diverticular_disease, "Yes", ifelse(!is.na(diverticular_disease), "No", NA))), cols),
+  #FOREIGN BODY
+    get_freqs("Fecal Diversion", already_mutated %>% mutate(var = 
+      ifelse(!is.na(fecal_diversion) & fecal_diversion, "Yes", ifelse(!is.na(fecal_diversion), "No", NA))), cols),
+  #FUNCTIONAL DISORDER
+    get_freqs("Foreign Body", already_mutated %>% mutate(var = 
+      ifelse(!is.na(foreign_body) & foreign_body, "Yes", ifelse(!is.na(foreign_body), "No", NA))), cols),
+  #GALLSTONES
+    get_freqs("Gallstones", already_mutated %>% mutate(var = 
+      ifelse(!is.na(gallstones) & gallstones, "Yes", ifelse(!is.na(gallstones), "No", NA))), cols),
+  #GERD
+    get_freqs("GERD", already_mutated %>% mutate(var = 
+      ifelse(!is.na(gerd) & gerd, "Yes", ifelse(!is.na(gerd), "No", NA))), cols),
+  #HEMORRHOIDS
+    get_freqs("Hemorhoids", already_mutated %>% mutate(var = 
+      ifelse(!is.na(hemorrhoids) & hemorrhoids, "Yes", ifelse(!is.na(hemorrhoids), "No", NA))), cols),
+  #HYPOXIC DISEASE
+    get_freqs("Hypoxic Disease", already_mutated %>% mutate(var = 
+      ifelse(!is.na(hypoxic) & hypoxic, "Yes", ifelse(!is.na(hypoxic), "No", NA))), cols),
+  #ILEUS
+    get_freqs("Ileus", already_mutated %>% mutate(var = 
+      ifelse(!is.na(ileus) & ileus, "Yes", ifelse(!is.na(ileus), "No", NA))), cols),
+  #IBD
+    get_freqs("Irritable Bowel Disease", already_mutated %>% mutate(var = 
+      ifelse(!is.na(ibd) & ibd, "Yes", ifelse(!is.na(ibd), "No", NA))), cols),
+  #MALABSORPTION
+    get_freqs("Malabsorptive Disease", already_mutated %>% mutate(var = 
+      ifelse(!is.na(malabsorptive) & malabsorptive, "Yes", ifelse(!is.na(malabsorptive), "No", NA))), cols),
+  #MOTILITY
+    get_freqs("Motility Disease", already_mutated %>% mutate(var = 
+      ifelse(!is.na(motility) & motility, "Yes", ifelse(!is.na(motility), "No", NA))), cols),
+  #NAFLD/NASH
+    get_freqs("NALFD or NASH", already_mutated %>% mutate(var = 
+      ifelse(!is.na(nafld_nash) & nafld_nash, "Yes", ifelse(!is.na(nafld_nash), "No", NA))), cols),
+  #NONSPECIFIC
+    get_freqs("Nonspecific", already_mutated %>% mutate(var = 
+      ifelse(!is.na(nonspecific) & nonspecific, "Yes", ifelse(!is.na(nonspecific), "No", NA))), cols),
+  #PANCREATITIS
+    get_freqs("Pancreatitis", already_mutated %>% mutate(var = 
+      ifelse(!is.na(pancreatitis) & pancreatitis, "Yes", ifelse(!is.na(pancreatitis), "No", NA))), cols),
+  #TRANSPLANT
+    get_freqs("Transplant", already_mutated %>% mutate(var = 
+      ifelse(!is.na(transplant) & transplant, "Yes", ifelse(!is.na(transplant), "No", NA))), cols),
+  #ULCERATIVE DISEASE
+    get_freqs("Ulcerative Disease", already_mutated %>% mutate(var = 
+      ifelse(!is.na(ulcerative_disease) & ulcerative_disease, "Yes", ifelse(!is.na(ulcerative_disease), "No", NA))), cols),
+  #OTHER
+    get_freqs("Other", already_mutated %>% mutate(var = 
+      ifelse(!is.na(other) & other, "Yes", ifelse(!is.na(other), "No", NA))), cols),
 
-	#ANATOMIC LOCATION
-		#ESOPHAGUS
-			get_freqs("Esophagus", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_esophagus) & location_esophagus, "Yes", ifelse(!is.na(location_esophagus), "No", NA))), cols),
-		#STOMACH
-			get_freqs("Stomach", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_stomach) & location_stomach, "Yes", ifelse(!is.na(location_stomach), "No", NA))), cols),
-		#SMALL INTESTINE
-			get_freqs("Small Intestine", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_small_intestine) & location_small_intestine, "Yes", ifelse(!is.na(location_small_intestine), "No", NA))), cols),
-		#COLON/RECTUM
-			get_freqs("Colon/Rectum", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_colon_rectum) & location_colon_rectum, "Yes", ifelse(!is.na(location_colon_rectum), "No", NA))), cols),
-		#ANUS
-			get_freqs("Anus", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_anus) & location_anus, "Yes", ifelse(!is.na(location_anus), "No", NA))), cols),
-		#LIVER
-			get_freqs("Liver", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_liver) & location_liver, "Yes", ifelse(!is.na(location_liver), "No", NA))), cols),
-		#BILIARY TRACT
-			get_freqs("Biliary Tract", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_biliarytract) & location_biliarytract, "Yes", ifelse(!is.na(location_biliarytract), "No", NA))), cols),
-		#GALLBLADDER
-			get_freqs("Gallbladder", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_gallbladder) & location_gallbladder, "Yes", ifelse(!is.na(location_gallbladder), "No", NA))), cols),
-		#PANCREAS
-			get_freqs("Pancreas", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_pancreas) & location_pancreas, "Yes", ifelse(!is.na(location_pancreas), "No", NA))), cols),
-		#PERITONEUM
-			get_freqs("Peritoneum", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_peritoneum) & location_peritoneum, "Yes", ifelse(!is.na(location_peritoneum), "No", NA))), cols),
-		#NOT SPECIFIED 
-			get_freqs("Not Specified", already_mutated %>% mutate(var = 
-				ifelse(!is.na(location_notspecified) & location_notspecified, "Yes", ifelse(!is.na(location_notspecified), "No", NA))), cols))
+#ANATOMIC LOCATION
+  #ESOPHAGUS
+    get_freqs("Esophagus", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_esophagus) & location_esophagus, "Yes", ifelse(!is.na(location_esophagus), "No", NA))), cols),
+  #STOMACH
+    get_freqs("Stomach", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_stomach) & location_stomach, "Yes", ifelse(!is.na(location_stomach), "No", NA))), cols),
+  #SMALL INTESTINE
+    get_freqs("Small Intestine", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_small_intestine) & location_small_intestine, "Yes", ifelse(!is.na(location_small_intestine), "No", NA))), cols),
+  #COLON/RECTUM
+    get_freqs("Colon/Rectum", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_colon_rectum) & location_colon_rectum, "Yes", ifelse(!is.na(location_colon_rectum), "No", NA))), cols),
+  #ANUS
+    get_freqs("Anus", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_anus) & location_anus, "Yes", ifelse(!is.na(location_anus), "No", NA))), cols),
+  #LIVER
+    get_freqs("Liver", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_liver) & location_liver, "Yes", ifelse(!is.na(location_liver), "No", NA))), cols),
+  #BILIARY TRACT
+    get_freqs("Biliary Tract", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_biliarytract) & location_biliarytract, "Yes", ifelse(!is.na(location_biliarytract), "No", NA))), cols),
+  #GALLBLADDER
+    get_freqs("Gallbladder", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_gallbladder) & location_gallbladder, "Yes", ifelse(!is.na(location_gallbladder), "No", NA))), cols),
+  #PANCREAS
+    get_freqs("Pancreas", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_pancreas) & location_pancreas, "Yes", ifelse(!is.na(location_pancreas), "No", NA))), cols),
+  #PERITONEUM
+    get_freqs("Peritoneum", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_peritoneum) & location_peritoneum, "Yes", ifelse(!is.na(location_peritoneum), "No", NA))), cols),
+  #NOT SPECIFIED 
+    get_freqs("Not Specified", already_mutated %>% mutate(var = 
+      ifelse(!is.na(location_notspecified) & location_notspecified, "Yes", ifelse(!is.na(location_notspecified), "No", NA))), cols))
 if(include_disease){
   output <- rbind(
 	  all_diseases,
@@ -841,7 +841,21 @@ colnames(table2) <- c(
 	"p-value for row", 
 	"p-value for trial characteristic")
 
-							      
+table3 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = early_discontinuation), c(TRUE, FALSE), TRUE))
+colnames(table3) <- c(
+	"Trial Characteristic", 
+	"Value", 
+	"Total Number of Rows Equal to Value", 
+	"Total Number", 
+	"Total Value of Discontinued", 
+	"Total for Discontinued", 
+	"Total Value of Study Completed", 
+	"Total for Study Completed", 
+	"Percentage of Total", 
+	"Percentage of Discontinued", 
+	"Percentage of Completed Studies", 
+	"p-value for row", 
+	"p-value for trial characteristic")
 							       
                                    
                                                                

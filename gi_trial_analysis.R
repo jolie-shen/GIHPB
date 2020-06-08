@@ -597,10 +597,13 @@ for (i in marginal_indexes) {
 }
 
 do_table_analysis <- function(already_mutated, cols, include_disease) {
-      #Primary Purpose						       
-  pp <- get_freqs("Primary Purpose", already_mutated %>% mutate(var = primary_purpose), cols)
+  
+  #Primary Purpose						       
+  pp <- get_freqs("Primary Purpose", already_mutated %>% mutate(var = new_primary_purpose_treatment), cols)
+  
   #Phase
-  phase <- get_freqs("Phase", already_mutated %>% mutate(var = phase), cols)
+  phase <- get_freqs("Phase", already_mutated %>% mutate(var = br_phase4_ref_ph3), cols)
+  
   #Study Arms
   study_arms <- get_freqs("Study Arms", already_mutated %>% mutate(var = 
     ifelse(!is.na(number_of_arms) & number_of_arms >= 3, "Three or more", 
@@ -611,12 +614,13 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
   masking <- get_freqs("Masking", already_mutated %>% mutate(var = br_masking2), cols)
 	
   #Randomized
-  randomized <- get_freqs("Randomized", already_mutated %>% mutate(var = allocation), cols)
+  randomized <- get_freqs("Randomized", already_mutated %>% mutate(var = br_allocation), cols)
 
   #Number of enrollees
   enrollment <- get_freqs("Enrollment Number", already_mutated %>% mutate (var = 
     ifelse(!is.na(enrollment) & enrollment >= 1000, "Greater than or equal to 1000", 
-    ifelse(!is.na(enrollment) & enrollment >100 & enrollment <1000, "Between 100 and 1000", 
+    ifelse(!is.na(enrollment) & enrollment >=500 & enrollment <1000, "Between 500 and 1000", 
+    ifelse(!is.na(enrollment) & enrollment >100 & enrollment <500, "Between 100 and 500", 
     ifelse(!is.na(enrollment) & enrollment <= 1, "Less than or Equal to 100", NA)))), cols)
 	
   #Had Data Monitoring Committe, code is slightly different because this is a boolean column (True/False)
@@ -640,13 +644,13 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
 
   #Number of Facilities
   num_facilities <- get_freqs("Number of Facilities", already_mutated %>% mutate(var = 
-    ifelse(!is.na(num_facilities) & num_facilities >10, "More than Ten",
-    ifelse(!is.na(num_facilities) & num_facilities >= 3 & num_facilities <=10, "Three to Ten", 
-    ifelse(!is.na(num_facilities) & num_facilities == 2, "Two", 
-    ifelse(!is.na(num_facilities) & num_facilities == 1, "One", NA))))), cols)
+    ifelse(!is.na(new_num_facilities2) & new_num_facilities2 >10, "More than Ten",
+    ifelse(!is.na(new_num_facilities2) & new_num_facilities2 >= 3 & new_num_facilities2 <=10, "Three to Ten", 
+    ifelse(!is.na(new_num_facilities2) & new_num_facilities2 == 2, "Two", 
+    ifelse(!is.na(new_num_facilities2) & new_num_facilities2 == 1, "One", NA))))), cols)
 
   #Sponsor Type
-  sponsor <- get_freqs("Sponsor Type", already_mutated %>% mutate(var = industry_any2), cols)
+  sponsor <- get_freqs("Sponsor Type", already_mutated %>% mutate(var = industry_any3), cols)
 
   #Were Results Reported? code is slightly different because this is a boolean column (True/False)
   reported <- get_freqs("Were Results Reported", already_mutated %>% mutate(var = 
@@ -828,7 +832,7 @@ colnames(table1) <- c(
 
 #------TABLE 2 SIMILAR TO OPHTHO TRIAL------#	
 #-----STRATIFIED BY SPONSORSHIP--------#							      
-table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any2), c("Industry", "NIH", "U.S. Fed", "Other"), TRUE))
+table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any3), c("Industry", "NIH", "U.S. Fed", "Other"), TRUE))
 colnames(table2) <- c(
 	"Trial Characteristic", 
 	"Value", 

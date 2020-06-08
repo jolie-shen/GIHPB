@@ -378,7 +378,8 @@ full_gi_df <-
 # ---------                JOLIES ANALYSIS                -------------
 # -------------------------------------------------------------------------#
 
-
+# ----------------------------Make Final CSV of Necessary Columns----------------------------#
+							     
 ##add in a column representing number of regions 							       
 full_gi_df <- full_gi_df %>% mutate(number_of_regions = str_count(all_regions, ";"))
 
@@ -412,10 +413,8 @@ cols_to_add <- c(
 	#"new_num_facilities2", 
 	"num_facilities",  #------number of sites
 	
-	
-	
 	"all_regions", 
-	"number_of_regions",
+	"num_regions",
 	#"br_singleregion", this changes any cell that has more than one region into "MultiRegion"
 	#"all_countries", 
 	#"USA_only_facilities", 

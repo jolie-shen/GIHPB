@@ -309,26 +309,6 @@ col_con_top20 <-
     'Australia', 'Netherlands', 'Brazil', 'Hungary',
     'India', 'Israel', 'Sweden')
 
-# using some code from table1_disease_total_global I was able to figure out what the top diseases were, and from this to make a collapsed
-# disease_other that combines the disease groups that aren't used that often...
-# my nomenclature is that disease_other3 means diseases that are not a part of the top 3 so they are considered "other"
-# table1_disease_total_global %>% pull(rowname) %>% paste0(collapse = "', '")
-
-#**# This line isn't necessary outside of Psych, I should remove it, but can keep it as a placeholder for dealing with future sets.
-#cols_disease <- setdiff(cols_disease_full,
-                        'child') # child is not actually a disease for us I guess? 
-
-# since removing 'child' category, there may now be some columns that have no check for any other column
-# we will convert those to other
-"""full_gi_df <-
-  full_gi_df %>% 
-  mutate(allempty = pmap_lgl(list(!!! rlang::syms(cols_disease)),
-                             function(...) ! any(sapply(list(...), function(i) i)))) %>%
-  mutate(other = case_when(
-    allempty ~ TRUE,
-    TRUE ~ other
-  ))"""
-#MK QUESTION: where is cols_disease?
 
 
 cols_disease_in_order <-

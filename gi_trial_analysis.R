@@ -511,10 +511,13 @@ full_gi <- subset(full_gi_df, select = cols_to_add)
 		name = category,
 		all_num = length(which(df$var == category)),
 		all_total_N = length(which(!is.na(df$var))),
+		all_percentage = (all_num/all_total_N)*100,
 		early_num = length(which(df$var == category & df$bintime == "2007_2012")),
 		early_total_N = length(which(!is.na(df$var) & df$bintime == "2007_2012")),
+		early_percentage = (early_num/early_total_N)*100,
 		late_num = length(which(df$var == category & df$bintime == "2013_2018")),
-		late_total_N = length(which(!is.na(df$var) & df$bintime == "2013_2018"))
+		late_total_N = length(which(!is.na(df$var) & df$bintime == "2013_2018")),
+		late_percentage = (late_num/late_total_N)*100
 	      )
 	  }
 	  return(freq_table)
@@ -533,7 +536,7 @@ full_gi <- subset(full_gi_df, select = cols_to_add)
 	  late_total_N = numeric(),
 	  late_percentage = numeric()
 	)
-
+							       
  	#POPULATE TABLE1							       
 	#Primary Purpose						       
 		freq_table <- get_freqs(freq_table, "Primary Purpose", full_gi %>% mutate(var = primary_purpose))

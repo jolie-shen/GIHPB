@@ -639,8 +639,47 @@ do_table_analysis <- function(already_mutated, cols) {
   return(output)
 }
 
-table1 <- do_table_analysis(full_gi %>% mutate(col = bintime), c("2007_2012", "2013_2018"))
-table2 <- do_table_analysis(full_gi %>% mutate(col = industry_any2), c("Industry", "NIH", "U.S. Fed", "Other"))
+#------TABLE 1 SIMILAR TO OPHTHO TRIAL------#	
+#-----STRATIFIED BY YEAR USING BIN--------#							       
+table1 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = bintime), c("2007_2012", "2013_2018")))
+colnames(table1) <- c(
+	"Trial Characteristic", 
+	"Value", 
+	"Total Number of Rows Equal to Value", 
+	"Total Number", 
+	"Total Value for 2007-2012", 
+	"Total for 2007-2012", 
+	"Total Value for 2012-2018", 
+	"Total for 2012-2018", 
+	"Percentage of Total", 
+	"Percentage of 2007-2012", 
+	"Percentage of 2012-2018", 
+	"p-value for row", 
+	"p-value for trial characteristic")
+
+#------TABLE 2 SIMILAR TO OPHTHO TRIAL------#	
+#-----STRATIFIED BY SPONSORSHIP--------#							      
+table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any2), c("Industry", "NIH", "U.S. Fed", "Other")))
+colnames(table2) <- c(
+	"Trial Characteristic", 
+	"Value", 
+	"Total Number of Rows Equal to Value", 
+	"Total Number", 
+	"Total Value for Industry", 
+	"Total for Industry", 
+	"Total Value for NIH", 
+	"Total for NIH", 
+	"Total Value for US Fed", 
+	"Total for US Fed", 
+	"Total Value for Other", 
+	"Total for Other", 
+	"Percentage of Total", 
+	"Percentage of Industry", 
+	"Percentage of NIH", 
+	"Percentage of US Fed", 
+	"Percentage of Other", 
+	"p-value for row", 
+	"p-value for trial characteristic")
 
                                    
                                                                

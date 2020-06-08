@@ -388,30 +388,39 @@ cols_to_add <- c(
 	"nct_id", #------ID
 
 	"early_discontinuation", #------PRIMARY OUTCOME OF EARLY DISCONTINUATION
+	#“Early discontinuation” was defined as a trial stopped early with the status “Terminated,” or “Suspended.” 
+	#In analysis of early discontinuation, we excluded trials documented as having 
+	#(1) less than one day duration 
+	#(2) trials with the status “Withdrawn” (defined as those terminating prior to the enrollment of participants) and
+	#(3) trials without a verified status. 
+	#Only trials completed by March 8, 2017 were included in the analysis of results reporting to 
+	#align with federal mandates for delayed submission of results information within three years of trial completion
 
-	"industry_any2", #changes all US Govt to NIH, similar to new_industry_any3_ref_nih except industry_any2 has an added category of US Fed
+	"industry_any3", 
+	#"industry_any2" #changes all US Govt to NIH, similar to new_industry_any3_ref_nih except industry_any2 has an added category of US Fed
 	#"new_industry_any3_ref_nih", 
 	#"industry_any2b", 
-	#"new_industry_any2b_ref_usgovt", #-----Sponsorship
+	#"new_industry_any2b_ref_usgovt", #-----Sponsorship/Funding
 
-	"phase", #problem with this is it has "Early Phase 1, and Phase1/Phase2 and Phas 2/Phase3 categories. Not sure what to do about these
-	#"br_phase4_ref_ph3", 
+	#"phase", #problem with this is it has "Early Phase 1, and Phase1/Phase2 and Phas 2/Phase3 categories. Not sure what to do about these
+	"br_phase4_ref_ph3", 
 	#"br_phase4_ref_ph1", 
 	#"br_phase2", 
 	#"new_br_phase2", #----Phase
 
-	"enrollment", #-----Number of participants enrolled
+	"enrollment", 
+	"new_br_enroll_ref_100to500", #-----Number of participants enrolled
 	
 	"bintime", #------duration 2007-2012, 2013-2018
 	
-	#"new_primary_purpose_treatment", 
+	"new_primary_purpose_treatment", #----primary objective of the intervention
 	#"new_primary_purpose_treatment2", 
-	"primary_purpose", #----primary objective of the intervention
+	#"primary_purpose",
 	
 	"interv_all_intervention_types", #-----type of intervention
 	
-	#"new_num_facilities2", 
-	"num_facilities",  #------number of sites
+	"new_num_facilities2", #------number of sites
+	#"num_facilities", 
 	
 	"all_regions", 
 	"num_regions",
@@ -421,8 +430,8 @@ cols_to_add <- c(
 	#"US_facility", 
 	"num_countries",  #-------Geographic region of sites
 	
-	"allocation",
-	#"br_allocation" #this changes all "NA" from allocation into "non-randomized" 
+	#"allocation",
+	"br_allocation" #this changes all "NA" from allocation into "non-randomized" 
 	 #-----use of randomization 
 	
 	#"masking", instead of "None", is called "None (Open label)" used br_masking2 instead just to make text shorter
@@ -435,6 +444,23 @@ cols_to_add <- c(
 	"number_of_arms", 
 	#"all_comp_num_arms", honestly looks exactly the same as number_of_arms #------number of arms
 
+	"br_gni_lmic_hic_only" #This will give you which were only in HIC and which were only in LMIC.
+	#"br_gni_lmic", 
+	#"br_gni_hic", #------high income vs low income coutry
+	
+	"new_first_submit", #------year of first submit
+
+	"br_trialduration", #------trial duration
+
+	"enrollment_type", #------enrollment type
+
+	"overall_status", #-----status, if we want to redefine discontinuation
+
+	"completion_date", #------completion date
+
+	"were_results_reported",  #"months_to_report_results", don't know what this is, mostly NAs 
+	"br_time_until_resultsreport_or_present_inmonths," #------how were results reported?
+	
 	"infection_any",
 	"infection_helminth",
 	"infection_intestines",
@@ -476,25 +502,8 @@ cols_to_add <- c(
 	"location_gallbladder",
 	"location_pancreas",
 	"location_peritoneum",
-	"location_notspecified", #----------anatomic location
-
-	#"br_gni_lmic_hic_only", 
-	#"br_gni_lmic", 
-	#"br_gni_hic", #------high income vs low income coutry
+	"location_notspecified" #----------anatomic location
 	
-	"new_first_submit", #------year of first submit
-
-	"br_trialduration", #------trial duration
-
-	"enrollment_type", #------enrollment type
-
-	"overall_status", #-----status, if we want to redefine discontinuation
-
-	"completion_date", #------completion date
-
-	"were_results_reported", 
-	#"months_to_report_results", don't know what this is, mostly NAs 
-	"br_time_until_resultsreport_or_present_inmonths" #------how were results reported?
 	)
 
 #####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)

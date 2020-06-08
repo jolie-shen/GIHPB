@@ -378,7 +378,8 @@ full_gi_df <-
 # ---------                JOLIES ANALYSIS                -------------
 # -------------------------------------------------------------------------#
 
-
+# ----------------------------Make Final CSV of Necessary Columns----------------------------#
+							     
 ##add in a column representing number of regions 							       
 full_gi_df <- full_gi_df %>% mutate(number_of_regions = str_count(all_regions, ";"))
 
@@ -411,8 +412,6 @@ cols_to_add <- c(
 	
 	#"new_num_facilities2", 
 	"num_facilities",  #------number of sites
-	
-	
 	
 	"all_regions", 
 	"number_of_regions",
@@ -502,36 +501,38 @@ cols_to_add <- c(
 
 full_gi <- subset(full_gi_df, select = cols_to_add)
 
-####MAKE TABLE1 SIMILAR TO TABLE1 IN OPTHO PAPER#####		       
-get_freqs <- function(freq_table, main_cat, df) {
-  for (category in unique(na.omit(df$var))) {
-      freq_table <- freq_table %>% add_row(
-        main_category = main_cat,
-        name = category,
-        all_num = length(which(df$var == category)),
-        all_total_N = length(which(!is.na(df$var))),
-        early_num = length(which(df$var == category & df$bintime == "2007_2012")),
-        early_total_N = length(which(!is.na(df$var) & df$bintime == "2007_2012")),
-        late_num = length(which(df$var == category & df$bintime == "2013_2018")),
-        late_total_N = length(which(!is.na(df$var) & df$bintime == "2013_2018"))
-      )
-  }
-  return(freq_table)
-}
+# ----------------------------Descriptive Statistics----------------------------#
+							      
+#----MAKE TABLE1 SIMILAR TO TABLE1 IN OPTHO PAPER---#	       
+	get_freqs <- function(freq_table, main_cat, df) {
+	  for (category in unique(na.omit(df$var))) {
+	      freq_table <- freq_table %>% add_row(
+		main_category = main_cat,
+		name = category,
+		all_num = length(which(df$var == category)),
+		all_total_N = length(which(!is.na(df$var))),
+		early_num = length(which(df$var == category & df$bintime == "2007_2012")),
+		early_total_N = length(which(!is.na(df$var) & df$bintime == "2007_2012")),
+		late_num = length(which(df$var == category & df$bintime == "2013_2018")),
+		late_total_N = length(which(!is.na(df$var) & df$bintime == "2013_2018"))
+	      )
+	  }
+	  return(freq_table)
+	}
 
-freq_table <- tibble(
-  main_category = character(),
-  name = character(),
-  all_num = numeric(),
-  all_total_N = numeric(),
-  all_percentage = numeric(),
-  early_num = numeric(),
-  early_total_N = numeric(),
-  early_percentage = numeric(),
-  late_num = numeric(),
-  late_total_N = numeric(),
-  late_percentage = numeric()
-)
+	freq_table <- tibble(
+	  main_category = character(),
+	  name = character(),
+	  all_num = numeric(),
+	  all_total_N = numeric(),
+	  all_percentage = numeric(),
+	  early_num = numeric(),
+	  early_total_N = numeric(),
+	  early_percentage = numeric(),
+	  late_num = numeric(),
+	  late_total_N = numeric(),
+	  late_percentage = numeric()
+	)
 
  	#POPULATE TABLE1							       
 	#Primary Purpose						       
@@ -575,45 +576,44 @@ freq_table <- tibble(
 		freq_table <- get_freqs(freq_table, "Were Results Reported", full_gi %>% mutate(var = 
 			ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))))
 
+							       
+#----MAKE TABLE2 SIMILAR TO TABLE1 IN OPTHO PAPER---#	  					      
+	get_freqs2 <- function(freq_table, main_cat, df) {
+	  for (category in unique(na.omit(df$var))) {
+	      freq_table <- freq_table %>% add_row(
+		main_category = main_cat,
+		name = category,
 
+		industry_num = length(which(df$var == category & df$industry_any2 == "Industry")),
+		industry_total_N = length(which(!is.na(df$var) & df$industry_any2 == "Industry")),
+		NIH_num = length(which(df$var == category & df$industry_any2 == "NIH")),
+		NIH_total_N = length(which(!is.na(df$var) & df$industry_any2 == "NIH")),
+		govt_num = length(which(df$var == category & df$industry_any2 == "U.S. Fed")),
+		govt_total_N = length(which(!is.na(df$var) & df$industry_any2 == "U.S. Fed")),
+		other_num = length(which(df$var == category & df$industry_any2 == "Other")),
+		other_total_N = length(which(!is.na(df$var) & df$industry_any2 == "Other"))
+	      )
+	  }
+	  return(freq_table)
+	}
 
-#### MAKING TABLE SIMILAR TO TABLE2 IN OPHTHO PAPER ######						      
-get_freqs2 <- function(freq_table, main_cat, df) {
-  for (category in unique(na.omit(df$var))) {
-      freq_table <- freq_table %>% add_row(
-        main_category = main_cat,
-        name = category,
-        
-        industry_num = length(which(df$var == category & df$industry_any2 == "Industry")),
-        industry_total_N = length(which(!is.na(df$var) & df$industry_any2 == "Industry")),
-        NIH_num = length(which(df$var == category & df$industry_any2 == "NIH")),
-        NIH_total_N = length(which(!is.na(df$var) & df$industry_any2 == "NIH")),
-        govt_num = length(which(df$var == category & df$industry_any2 == "U.S. Fed")),
-        govt_total_N = length(which(!is.na(df$var) & df$industry_any2 == "U.S. Fed")),
-        other_num = length(which(df$var == category & df$industry_any2 == "Other")),
-        other_total_N = length(which(!is.na(df$var) & df$industry_any2 == "Other"))
-      )
-  }
-  return(freq_table)
-}
+	freq_table2 <- tibble(
+	  main_category = character(),
+	  name = character(),
 
-freq_table2 <- tibble(
-  main_category = character(),
-  name = character(),
- 
-  industry_num = numeric(),
-  industry_total_N = numeric(),
-  industry_percentage = numeric(),
-  NIH_num = numeric(),
-  NIH_total_N = numeric(),
-  NIH_percentage = numeric(),
-  govt_num = numeric(),
-  govt_total_N = numeric(),
-  govt_percentage = numeric(),
-  other_num = numeric(),
-  other_total_N = numeric(),
-  other_percentage = numeric()
-)
+	  industry_num = numeric(),
+	  industry_total_N = numeric(),
+	  industry_percentage = numeric(),
+	  NIH_num = numeric(),
+	  NIH_total_N = numeric(),
+	  NIH_percentage = numeric(),
+	  govt_num = numeric(),
+	  govt_total_N = numeric(),
+	  govt_percentage = numeric(),
+	  other_num = numeric(),
+	  other_total_N = numeric(),
+	  other_percentage = numeric()
+	)
 
 	#POPULATING TABLE2
 	#Primary Purpose
@@ -648,7 +648,165 @@ freq_table2 <- tibble(
 		freq_table2 <- get_freqs2(freq_table2, "Were Results Reported", full_gi %>% mutate(var = 
 			ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))))
 
-                                             
+##----MAKE TABLE 3 MADE BY DISEASE AND LOCATION-------##
+get_freqs3 <- function(freq_table, main_cat, df) {
+  for (category in unique(na.omit(df$var))) {
+      freq_table <- freq_table %>% add_row(
+        main_category = main_cat,
+        name = category,
+        
+        industry_num = length(which(df$var == category & df$industry_any2 == "Industry")),
+        industry_total_N = length(which(!is.na(df$var) & df$industry_any2 == "Industry")),
+        NIH_num = length(which(df$var == category & df$industry_any2 == "NIH")),
+        NIH_total_N = length(which(!is.na(df$var) & df$industry_any2 == "NIH")),
+        govt_num = length(which(df$var == category & df$industry_any2 == "U.S. Fed")),
+        govt_total_N = length(which(!is.na(df$var) & df$industry_any2 == "U.S. Fed")),
+        other_num = length(which(df$var == category & df$industry_any2 == "Other")),
+        other_total_N = length(which(!is.na(df$var) & df$industry_any2 == "Other"))
+      )
+  }
+  return(freq_table)
+}
+
+freq_table3 <- tibble(
+  main_category = character(),
+  name = character(),
+ 
+  industry_num = numeric(),
+  industry_total_N = numeric(),
+  industry_percentage = numeric(),
+  NIH_num = numeric(),
+  NIH_total_N = numeric(),
+  NIH_percentage = numeric(),
+  govt_num = numeric(),
+  govt_total_N = numeric(),
+  govt_percentage = numeric(),
+  other_num = numeric(),
+  other_total_N = numeric(),
+  other_percentage = numeric()
+)
+
+#POPULATE THE TABLE
+	#DISEASE
+		#INFECTIONS ANY
+			freq_table3 <- get_freqs3(freq_table3, "Any Infection", full_gi %>% mutate(var = 
+				ifelse(!is.na(infection_any) & infection_any, "Yes", ifelse(!is.na(infection_any), "No", NA))))
+			#HELMINTHS
+			freq_table3 <- get_freqs3(freq_table3, "Helminth Infection", full_gi %>% mutate(var = 
+				ifelse(!is.na(infection_helminth) & infection_helminth, "Yes", ifelse(!is.na(infection_helminth), "No", NA))))
+			#INTESTINES
+			freq_table3 <- get_freqs3(freq_table3, "Intestinal Infection", full_gi %>% mutate(var = 
+				ifelse(!is.na(infection_intestines) & infection_intestines, "Yes", ifelse(!is.na(infection_intestines), "No", NA))))
+			#HEPATITIS
+			freq_table3 <- get_freqs3(freq_table3, "Heptatitis", full_gi %>% mutate(var = 
+				ifelse(!is.na(infection_hepatitis) & infection_hepatitis, "Yes", ifelse(!is.na(infection_hepatitis), "No", NA))))
+		#NEOPLASIA DISEASE
+			freq_table3 <- get_freqs3(freq_table3, "Any Neoplasia", full_gi %>% mutate(var = 
+				ifelse(!is.na(neoplasia_disease) & neoplasia_disease, "Yes", ifelse(!is.na(neoplasia_disease), "No", NA))))
+			#PRIMARY
+			freq_table3 <- get_freqs3(freq_table3, "Primary Neoplasia", full_gi %>% mutate(var = 
+				ifelse(!is.na(neoplasia_primary) & neoplasia_primary, "Yes", ifelse(!is.na(neoplasia_primary), "No", NA))))
+			#METASTASIS
+			freq_table3 <- get_freqs3(freq_table3, "Metastatic Neoplasia", full_gi %>% mutate(var = 
+				ifelse(!is.na(neoplasia_metastasis) & neoplasia_metastasis, "Yes", ifelse(!is.na(neoplasia_metastasis), "No", NA))))
+		#ABDOMINAL HERNIA
+			freq_table3 <- get_freqs3(freq_table3, "Abdominal Hernia", full_gi %>% mutate(var = 
+				ifelse(!is.na(abdominal_hernia) & abdominal_hernia, "Yes", ifelse(!is.na(abdominal_hernia), "No", NA))))
+		#APPENDICITIS
+			freq_table3 <- get_freqs3(freq_table3, "Abdominal Hernia", full_gi %>% mutate(var = 
+				ifelse(!is.na(abdominal_hernia) & abdominal_hernia, "Yes", ifelse(!is.na(abdominal_hernia), "No", NA))))
+		#CIRRHOSIS
+			freq_table3 <- get_freqs3(freq_table3, "Appendicitis", full_gi %>% mutate(var = 
+				ifelse(!is.na(appendicitis) & appendicitis, "Yes", ifelse(!is.na(appendicitis), "No", NA))))
+		#DIVERTICULAR DISEASE
+			freq_table3 <- get_freqs3(freq_table3, "Cirrhosis", full_gi %>% mutate(var = 
+				ifelse(!is.na(cirrhosis) & cirrhosis, "Yes", ifelse(!is.na(cirrhosis), "No", NA))))
+		#FECAL DIVERSION
+			freq_table3 <- get_freqs3(freq_table3, "Diverticular Disease", full_gi %>% mutate(var = 
+				ifelse(!is.na(diverticular_disease) & diverticular_disease, "Yes", ifelse(!is.na(diverticular_disease), "No", NA))))
+		#FOREIGN BODY
+			freq_table3 <- get_freqs3(freq_table3, "Fecal Diversion", full_gi %>% mutate(var = 
+				ifelse(!is.na(fecal_diversion) & fecal_diversion, "Yes", ifelse(!is.na(fecal_diversion), "No", NA))))
+		#FUNCTIONAL DISORDER
+			freq_table3 <- get_freqs3(freq_table3, "Foreign Body", full_gi %>% mutate(var = 
+				ifelse(!is.na(foreign_body) & foreign_body, "Yes", ifelse(!is.na(foreign_body), "No", NA))))
+		#GALLSTONES
+			freq_table3 <- get_freqs3(freq_table3, "Gallstones", full_gi %>% mutate(var = 
+				ifelse(!is.na(gallstones) & gallstones, "Yes", ifelse(!is.na(gallstones), "No", NA))))
+		#GERD
+			freq_table3 <- get_freqs3(freq_table3, "GERD", full_gi %>% mutate(var = 
+				ifelse(!is.na(gerd) & gerd, "Yes", ifelse(!is.na(gerd), "No", NA))))
+		#HEMORRHOIDS
+			freq_table3 <- get_freqs3(freq_table3, "Hemorhoids", full_gi %>% mutate(var = 
+				ifelse(!is.na(hemorrhoids) & hemorrhoids, "Yes", ifelse(!is.na(hemorrhoids), "No", NA))))
+		#HYPOXIC DISEASE
+			freq_table3 <- get_freqs3(freq_table3, "Hypoxic Disease", full_gi %>% mutate(var = 
+				ifelse(!is.na(hypoxic) & hypoxic, "Yes", ifelse(!is.na(hypoxic), "No", NA))))
+		#ILEUS
+			freq_table3 <- get_freqs3(freq_table3, "Ileus", full_gi %>% mutate(var = 
+				ifelse(!is.na(ileus) & ileus, "Yes", ifelse(!is.na(ileus), "No", NA))))
+		#IBD
+			freq_table3 <- get_freqs3(freq_table3, "Irritable Bowel Disease", full_gi %>% mutate(var = 
+				ifelse(!is.na(ibd) & ibd, "Yes", ifelse(!is.na(ibd), "No", NA))))
+		#MALABSORPTION
+			freq_table3 <- get_freqs3(freq_table3, "Malabsorptive Disease", full_gi %>% mutate(var = 
+				ifelse(!is.na(malabsorptive) & malabsorptive, "Yes", ifelse(!is.na(malabsorptive), "No", NA))))
+		#MOTILITY
+			freq_table3 <- get_freqs3(freq_table3, "Motility Disease", full_gi %>% mutate(var = 
+				ifelse(!is.na(motility) & motility, "Yes", ifelse(!is.na(motility), "No", NA))))
+		#NAFLD/NASH
+			freq_table3 <- get_freqs3(freq_table3, "NALFD or NASH", full_gi %>% mutate(var = 
+				ifelse(!is.na(nafld_nash) & nafld_nash, "Yes", ifelse(!is.na(nafld_nash), "No", NA))))
+		#NONSPECIFIC
+			freq_table3 <- get_freqs3(freq_table3, "Nonspecific", full_gi %>% mutate(var = 
+				ifelse(!is.na(nonspecific) & nonspecific, "Yes", ifelse(!is.na(nonspecific), "No", NA))))
+		#PANCREATITIS
+			freq_table3 <- get_freqs3(freq_table3, "Pancreatitis", full_gi %>% mutate(var = 
+				ifelse(!is.na(pancreatitis) & pancreatitis, "Yes", ifelse(!is.na(pancreatitis), "No", NA))))
+		#TRANSPLANT
+			freq_table3 <- get_freqs3(freq_table3, "Transplant", full_gi %>% mutate(var = 
+				ifelse(!is.na(transplant) & transplant, "Yes", ifelse(!is.na(transplant), "No", NA))))
+		#ULCERATIVE DISEASE
+			freq_table3 <- get_freqs3(freq_table3, "Ulcerative Disease", full_gi %>% mutate(var = 
+				ifelse(!is.na(ulcerative_disease) & ulcerative_disease, "Yes", ifelse(!is.na(ulcerative_disease), "No", NA))))
+		#OTHER
+			freq_table3 <- get_freqs3(freq_table3, "Other", full_gi %>% mutate(var = 
+				ifelse(!is.na(other) & other, "Yes", ifelse(!is.na(other), "No", NA))))
+
+	#ANATOMIC LOCATION
+		#ESOPHAGUS
+			freq_table3 <- get_freqs3(freq_table3, "Esophagus", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_esophagus) & location_esophagus, "Yes", ifelse(!is.na(location_esophagus), "No", NA))))
+		#STOMACH
+			freq_table3 <- get_freqs3(freq_table3, "Stomach", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_stomach) & location_stomach, "Yes", ifelse(!is.na(location_stomach), "No", NA))))
+		#SMALL INTESTINE
+			freq_table3 <- get_freqs3(freq_table3, "Small Intestine", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_small_intestine) & location_small_intestine, "Yes", ifelse(!is.na(location_small_intestine), "No", NA))))
+		#COLON/RECTUM
+			freq_table3 <- get_freqs3(freq_table3, "Colon/Rectum", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_colon_rectum) & location_colon_rectum, "Yes", ifelse(!is.na(location_colon_rectum), "No", NA))))
+		#ANUS
+			freq_table3 <- get_freqs3(freq_table3, "Anus", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_anus) & location_anus, "Yes", ifelse(!is.na(location_anus), "No", NA))))
+		#LIVER
+			freq_table3 <- get_freqs3(freq_table3, "Liver", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_liver) & location_liver, "Yes", ifelse(!is.na(location_liver), "No", NA))))
+		#BILIARY TRACT
+			freq_table3 <- get_freqs3(freq_table3, "Biliary Tract", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_biliarytract) & location_biliarytract, "Yes", ifelse(!is.na(location_biliarytract), "No", NA))))
+		#GALLBLADDER
+			freq_table3 <- get_freqs3(freq_table3, "Gallbladder", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_gallbladder) & location_gallbladder, "Yes", ifelse(!is.na(location_gallbladder), "No", NA))))
+		#PANCREAS
+			freq_table3 <- get_freqs3(freq_table3, "Pancreas", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_pancreas) & location_pancreas, "Yes", ifelse(!is.na(location_pancreas), "No", NA))))
+		#PERITONEUM
+			freq_table3 <- get_freqs3(freq_table3, "Peritoneum", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_peritoneum) & location_peritoneum, "Yes", ifelse(!is.na(location_peritoneum), "No", NA))))
+		#NOT SPECIFIED 
+			freq_table3 <- get_freqs3(freq_table3, "Not Specified", full_gi %>% mutate(var = 
+				ifelse(!is.na(location_notspecified) & location_notspecified, "Yes", ifelse(!is.na(location_notspecified), "No", NA))))                               
                                                                
 # -------------------------------------------------------------------------#
 # ---------                 ACTUAL FIGURES                    -------------

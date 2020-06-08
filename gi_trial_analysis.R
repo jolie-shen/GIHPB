@@ -414,7 +414,7 @@ cols_to_add <- c(
 	"num_facilities",  #------number of sites
 	
 	"all_regions", 
-	"number_of_regions",
+	"num_regions",
 	#"br_singleregion", this changes any cell that has more than one region into "MultiRegion"
 	#"all_countries", 
 	#"USA_only_facilities", 
@@ -560,7 +560,11 @@ full_gi <- subset(full_gi_df, select = cols_to_add)
 			ifelse(!is.na(num_countries) & num_countries >= 3, "Three or more", 
 			ifelse(!is.na(num_countries) & num_countries == 2, "Two", 
 			ifelse(!is.na(num_countries) & num_countries == 1, "One", NA)))))
-
+	#Number of Regions
+		freq_table <- get_freqs(freq_table, "Number of Regions", full_gi %>% mutate(var = 
+			ifelse(!is.na(num_regions) & num_regions >= 3, "Three or more", 
+			ifelse(!is.na(num_regions) & num_regions == 2, "Two", 
+			ifelse(!is.na(num_regions) & num_regions == 1, "One", NA)))))
 	#Number of Facilities
 		freq_table <- get_freqs(freq_table, "Number of Facilities", full_gi %>% mutate(var = 
 			ifelse(!is.na(num_facilities) & num_facilities >10, "More than Ten",
@@ -638,6 +642,11 @@ full_gi <- subset(full_gi_df, select = cols_to_add)
 			ifelse(!is.na(num_countries) & num_countries >= 3, "Three or more", 
 			ifelse(!is.na(num_countries) & num_countries == 2, "Two", 
 			ifelse(!is.na(num_countries) & num_countries == 1, "One", NA)))))
+	#Number of Regions
+	freq_table2 <- get_freqs2(freq_table2, "Number of Regions", full_gi %>% mutate(var = 
+		ifelse(!is.na(num_regions) & num_regions >= 3, "Three or more", 
+		ifelse(!is.na(num_regions) & num_regions == 2, "Two", 
+		ifelse(!is.na(num_regions) & num_regions == 1, "One", NA)))))					 
 	#Number of Facilities
 	freq_table2 <- get_freqs2(freq_table2, "Number of Facilities", full_gi %>% mutate(var = 
 			ifelse(!is.na(num_facilities) & num_facilities >10, "More than Ten",

@@ -602,6 +602,12 @@ do_table_analysis <- function(already_mutated, cols) {
   #Randomized
   randomized <- get_freqs("Randomized", already_mutated %>% mutate(var = allocation), cols)
 
+  #Number of enrollees
+  enrollment <- get_freqs("Enrollment Number", already_mutated %>% mutate (var = 
+    ifelse(!is.na(enrollment) & enrollment >= 1000, "Greater than or equal to 1000", 
+    ifelse(!is.na(enrollment) & enrollment >100 & enrollment <1000, "Between 100 and 1000", 
+    ifelse(!is.na(enrollment) & enrollment <= 1, "Less than or Equal to 100", NA)))), cols)
+	
   #Had Data Monitoring Committe, code is slightly different because this is a boolean column (True/False)
   has_dmc <- get_freqs("Had Data Monitoring Committee", already_mutated %>% mutate(var = 
     ifelse(!is.na(has_dmc) & has_dmc, "Yes", ifelse(!is.na(has_dmc), "No", NA))), cols)
@@ -635,7 +641,7 @@ do_table_analysis <- function(already_mutated, cols) {
   reported <- get_freqs("Were Results Reported", already_mutated %>% mutate(var = 
     ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))), cols)
 
-  output <- rbind(pp, phase, study_arms, masking, randomized, has_dmc, num_countries, regions, num_regions, num_facilities, sponsor, reported)
+  output <- rbind(pp, phase, study_arms, masking, enrollment, randomized, has_dmc, num_countries, regions, num_regions, num_facilities, sponsor, reported)
   return(output)
 }
 

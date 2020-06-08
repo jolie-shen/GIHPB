@@ -502,6 +502,7 @@ cols_to_add <- c(
 
 full_gi <- subset(full_gi_df, select = cols_to_add)
 
+####MAKE TABLE1 SIMILAR TO TABLE1 IN OPTHO PAPER#####		       
 get_freqs <- function(freq_table, main_cat, df) {
   for (category in unique(na.omit(df$var))) {
       freq_table <- freq_table %>% add_row(
@@ -532,7 +533,120 @@ freq_table <- tibble(
   late_percentage = numeric()
 )
 
-freq_table <- get_freqs(freq_table, "Primary Purpose", full_gi %>% mutate(var = primary_purpose))
+ 	#POPULATE TABLE1							       
+	#Primary Purpose						       
+		freq_table <- get_freqs(freq_table, "Primary Purpose", full_gi %>% mutate(var = primary_purpose))
+	#Phase
+		freq_table <- get_freqs(freq_table, "Phase", full_gi %>% mutate(var = phase))
+	#Study Arms
+		freq_table <- get_freqs(freq_table, "Study Arms", full_gi %>% mutate(var = 
+			ifelse(!is.na(number_of_arms) & number_of_arms >= 3, "Three or more", 
+			ifelse(!is.na(number_of_arms) & number_of_arms == 2, "Two", 
+			ifelse(!is.na(number_of_arms) & number_of_arms == 1, "One", NA)))))
+	#Masking
+		freq_table <- get_freqs(freq_table, "Masking", full_gi %>% mutate(var = br_masking2))
+	#Randomized
+		freq_table <- get_freqs(freq_table, "Randomized", full_gi %>% mutate(var = allocation))
+
+	#Had Data Monitoring Committe, code is slightly different because this is a boolean column (True/False)
+		freq_table <- get_freqs(freq_table, "Had Data Monitoring Committee", full_gi %>% mutate(var = 
+			ifelse(!is.na(has_dmc) & has_dmc, "Yes", ifelse(!is.na(has_dmc), "No", NA))))
+
+	#Centers to skip for now because need to figure out how to separate semicolons COME BACK TO THIS
+
+	#Number of Countries
+		freq_table <- get_freqs(freq_table, "Number of Countries", full_gi %>% mutate(var = 
+			ifelse(!is.na(num_countries) & num_countries >= 3, "Three or more", 
+			ifelse(!is.na(num_countries) & num_countries == 2, "Two", 
+			ifelse(!is.na(num_countries) & num_countries == 1, "One", NA)))))
+
+	#Number of Facilities
+		freq_table <- get_freqs(freq_table, "Number of Facilities", full_gi %>% mutate(var = 
+			ifelse(!is.na(num_facilities) & num_facilities >10, "More than Ten",
+			ifelse(!is.na(num_facilities) & num_facilities >= 3 & num_facilities <=10, "Three to Ten", 
+			ifelse(!is.na(num_facilities) & num_facilities == 2, "Two", 
+			ifelse(!is.na(num_facilities) & num_facilities == 1, "One", NA))))))
+
+	#Sponsor Type
+		freq_table <- get_freqs(freq_table, "Sponsor Type", full_gi %>% mutate(var = industry_any2))
+
+
+	#Were Results Reported? code is slightly different because this is a boolean column (True/False)
+		freq_table <- get_freqs(freq_table, "Were Results Reported", full_gi %>% mutate(var = 
+			ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))))
+
+
+
+#### MAKING TABLE SIMILAR TO TABLE2 IN OPHTHO PAPER ######						      
+get_freqs2 <- function(freq_table, main_cat, df) {
+  for (category in unique(na.omit(df$var))) {
+      freq_table <- freq_table %>% add_row(
+        main_category = main_cat,
+        name = category,
+        
+        industry_num = length(which(df$var == category & df$industry_any2 == "Industry")),
+        industry_total_N = length(which(!is.na(df$var) & df$industry_any2 == "Industry")),
+        NIH_num = length(which(df$var == category & df$industry_any2 == "NIH")),
+        NIH_total_N = length(which(!is.na(df$var) & df$industry_any2 == "NIH")),
+        govt_num = length(which(df$var == category & df$industry_any2 == "U.S. Fed")),
+        govt_total_N = length(which(!is.na(df$var) & df$industry_any2 == "U.S. Fed")),
+        other_num = length(which(df$var == category & df$industry_any2 == "Other")),
+        other_total_N = length(which(!is.na(df$var) & df$industry_any2 == "Other"))
+      )
+  }
+  return(freq_table)
+}
+
+freq_table2 <- tibble(
+  main_category = character(),
+  name = character(),
+ 
+  industry_num = numeric(),
+  industry_total_N = numeric(),
+  industry_percentage = numeric(),
+  NIH_num = numeric(),
+  NIH_total_N = numeric(),
+  NIH_percentage = numeric(),
+  govt_num = numeric(),
+  govt_total_N = numeric(),
+  govt_percentage = numeric(),
+  other_num = numeric(),
+  other_total_N = numeric(),
+  other_percentage = numeric()
+)
+
+	#POPULATING TABLE2
+	#Primary Purpose
+		freq_table2 <- get_freqs2(freq_table2, "Primary Purpose", full_gi %>% mutate(var = primary_purpose))
+	#Phase
+		freq_table2 <- get_freqs2(freq_table2, "Phase", full_gi %>% mutate(var = phase))
+	#Study Arms
+		freq_table2 <- get_freqs2(freq_table2, "Study Arms", full_gi %>% mutate(var = 
+			ifelse(!is.na(number_of_arms) & number_of_arms >= 3, "Three or more", 
+			ifelse(!is.na(number_of_arms) & number_of_arms == 2, "Two", 
+			ifelse(!is.na(number_of_arms) & number_of_arms == 1, "One", NA)))))
+	#Masking
+		freq_table2 <- get_freqs2(freq_table2, "Masking", full_gi %>% mutate(var = br_masking2))
+	#Randomized
+		freq_table2 <- get_freqs2(freq_table2, "Randomized", full_gi %>% mutate(var = allocation))
+	#Had Data Monitoring Committe, code is slightly different because this is a boolean column (True/False)
+		freq_table2 <- get_freqs2(freq_table2, "Had Data Monitoring Committee", full_gi %>% mutate(var = 
+			ifelse(!is.na(has_dmc) & has_dmc, "Yes", ifelse(!is.na(has_dmc), "No", NA))))
+	#Centers to skip for now because need to figure out how to separate semicolons COME BACK TO THIS
+	#Number of Countries
+	freq_table2 <- get_freqs2(freq_table2, "Number of Countries", full_gi %>% mutate(var = 
+			ifelse(!is.na(num_countries) & num_countries >= 3, "Three or more", 
+			ifelse(!is.na(num_countries) & num_countries == 2, "Two", 
+			ifelse(!is.na(num_countries) & num_countries == 1, "One", NA)))))
+	#Number of Facilities
+	freq_table2 <- get_freqs2(freq_table2, "Number of Facilities", full_gi %>% mutate(var = 
+			ifelse(!is.na(num_facilities) & num_facilities >10, "More than Ten",
+			ifelse(!is.na(num_facilities) & num_facilities >= 3 & num_facilities <=10, "Three to Ten", 
+			ifelse(!is.na(num_facilities) & num_facilities == 2, "Two", 
+			ifelse(!is.na(num_facilities) & num_facilities == 1, "One", NA))))))
+	#Were Results Reported? code is slightly different because this is a boolean column (True/False)
+		freq_table2 <- get_freqs2(freq_table2, "Were Results Reported", full_gi %>% mutate(var = 
+			ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))))
 
                                              
                                                                

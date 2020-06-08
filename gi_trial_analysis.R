@@ -832,7 +832,7 @@ colnames(table1) <- c(
 
 #------TABLE 2 SIMILAR TO OPHTHO TRIAL------#	
 #-----STRATIFIED BY SPONSORSHIP--------#							      
-table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any3), c("Industry", "NIH", "U.S. Fed", "Other"), TRUE))
+table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any3), c("Industry", "US.Govt", "Other"), TRUE))
 colnames(table2) <- c(
 	"Trial Characteristic", 
 	"Value", 
@@ -840,16 +840,13 @@ colnames(table2) <- c(
 	"Total Number", 
 	"Total Value for Industry", 
 	"Total for Industry", 
-	"Total Value for NIH", 
-	"Total for NIH", 
-	"Total Value for US Fed", 
-	"Total for US Fed", 
+	"Total Value for US.Govt", 
+	"Total for US.Govt", 
 	"Total Value for Other", 
 	"Total for Other", 
 	"Percentage of Total", 
 	"Percentage of Industry", 
-	"Percentage of NIH", 
-	"Percentage of US Fed", 
+	"Percentage of US.Govt", 
 	"Percentage of Other", 
 	"p-value for row", 
 	"p-value for trial characteristic")

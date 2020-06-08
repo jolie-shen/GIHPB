@@ -582,7 +582,7 @@ for (i in marginal_indexes) {
 #This can't be done on any variable that is "treat_as_csv"
 if(!treat_as_csv) {
 	all_chi_sq <- chisq.test(apply(output_matrix[, marginal_indexes], c(1,2), as.numeric))
-	output_matrix[,13] <- all_chi_sq$p.value
+	output_matrix[,num_cols] <- all_chi_sq$p.value
 	}
   return(output_matrix)
 }

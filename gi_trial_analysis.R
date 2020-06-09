@@ -408,8 +408,8 @@ cols_to_add <- c(
 	#"br_phase2", 
 	#"new_br_phase2", #----Phase
 
-	"enrollment", 
-	"new_br_enroll_ref_100to500", #-----Number of participants enrolled
+	"enrollment",
+	"new_enroll",#-----Number of participants enrolled
 	
 	"bintime", #------duration 2007-2012, 2013-2018
 	
@@ -431,7 +431,7 @@ cols_to_add <- c(
 	"num_countries",  #-------Geographic region of sites
 	
 	#"allocation",
-	"br_allocation" #this changes all "NA" from allocation into "non-randomized" 
+	"br_allocation", #this changes all "NA" from allocation into "non-randomized" 
 	 #-----use of randomization 
 	
 	#"masking", instead of "None", is called "None (Open label)" used br_masking2 instead just to make text shorter
@@ -444,7 +444,7 @@ cols_to_add <- c(
 	"number_of_arms", 
 	#"all_comp_num_arms", honestly looks exactly the same as number_of_arms #------number of arms
 
-	"br_gni_lmic_hic_only" #This will give you which were only in HIC and which were only in LMIC.
+	"br_gni_lmic_hic_only", #This will give you which were only in HIC and which were only in LMIC.
 	#"br_gni_lmic", 
 	#"br_gni_hic", #------high income vs low income coutry
 	
@@ -459,7 +459,7 @@ cols_to_add <- c(
 	"completion_date", #------completion date
 
 	"were_results_reported",  #"months_to_report_results", don't know what this is, mostly NAs 
-	"br_time_until_resultsreport_or_present_inmonths," #------how were results reported?
+	"br_time_until_resultsreport_or_present_inmonths", #------how were results reported?
 	
 	"infection_any",
 	"infection_helminth",
@@ -503,7 +503,6 @@ cols_to_add <- c(
 	"location_pancreas",
 	"location_peritoneum",
 	"location_notspecified" #----------anatomic location
-	
 	)
 
 #####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
@@ -621,7 +620,7 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
     ifelse(!is.na(enrollment) & enrollment >= 1000, "Greater than or equal to 1000", 
     ifelse(!is.na(enrollment) & enrollment >=500 & enrollment <1000, "Between 500 and 1000", 
     ifelse(!is.na(enrollment) & enrollment >100 & enrollment <500, "Between 100 and 500", 
-    ifelse(!is.na(enrollment) & enrollment <= 1, "Less than or Equal to 100", NA)))), cols)
+    ifelse(!is.na(enrollment) & enrollment <= 1, "Less than or Equal to 100", NA))))), cols)
 	
   #Had Data Monitoring Committe, code is slightly different because this is a boolean column (True/False)
   has_dmc <- get_freqs("Had Data Monitoring Committee", already_mutated %>% mutate(var = 

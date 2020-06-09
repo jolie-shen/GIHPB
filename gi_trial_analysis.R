@@ -831,7 +831,7 @@ colnames(table1) <- c(
 
 #------TABLE 2 SIMILAR TO OPHTHO TRIAL------# 
 #-----STRATIFIED BY SPONSORSHIP--------#                    
-table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any3), c("Industry", "US.Govt", "Other"), TRUE))
+table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any3), c("Industry", "NIH", "Other"), TRUE))
 colnames(table2) <- c(
   "Trial Characteristic", 
   "Value", 

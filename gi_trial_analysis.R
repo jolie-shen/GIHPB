@@ -1106,7 +1106,7 @@ library(mice)
 library(tidyverse)
 
 # Set factor variables
-micedata <- full_gi_imputed %>%
+micedata <- full_gi %>%
     mutate(
         early_discontinuation = as.factor(early_discontinuation),
         industry_any3 = as.factor(industry_any3),

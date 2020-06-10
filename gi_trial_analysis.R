@@ -1101,84 +1101,9 @@ ts_table <- rbind(
 			     
 #######################################
 	     
-			     
- cols_to_add_for_imputation <- c(
-"nct_id",
-  "early_discontinuation", 
-  "industry_any3", 
-  "br_phase4_ref_ph3", 
-"enrollment", 
-  "new_enroll", #-----Number of participants enrolled
-  "bintime", #------duration 2007-2012, 2013-2018
-  "new_primary_purpose_treatment", #----primary objective of the intervention  
-  "interv_all_intervention_types", #-----type of intervention
-"num_facilities",
-"all_regions",
-"num_regions",
-"num_countries",
-  "br_allocation", #this changes all "NA" from allocation into "non-randomized" 
-  "br_masking2", #changes all "quadruple blinded" in br_masking2 to "double", changes all "None (Open Label)" to "None"
-  "has_dmc", #--------oversight by a data-monitoring committee
-"number_of_arms",
-  "br_gni_lmic_hic_only", #This will give you which were only in HIC and which were only in LMIC.
-   #new_first_submit
-"br_trialduration", 
-  "enrollment_type", #------enrollment type
-  "overall_status", #-----status, if we want to redefine discontinuation
-   #completion_date
-  "were_results_reported",
-"br_time_until_resultsreport_or_present_inmonths", #--just added
-
-  "infection_any",
-  "infection_helminth",
-  "infection_intestines",
-  "infection_hepatitis",
-  "neoplasia_primary",
-  "neoplasia_metastasis",
-  "neoplasia_disease",
-  "abdominal_hernia",
-  "appendicitis",
-  "cirrhosis",
-  "diverticular_disease",
-  "fecal_diversion",
-  "foreign_body",
-  "functional_disorder",
-  "gallstones",
-  "gerd",
-  "hemorrhoids",
-  "hypoxic",
-  "ileus",
-  "ibd", 
-  "malabsorptive",
-  "motility",
-  "nafld_nash",
-  "nonspecific",
-  "pancreatitis",
-  "transplant",
-  "ulcerative_disease",
-  "other", #----------disease
-
-  "location_esophagus",
-  "location_stomach",
-  "location_small_intestine",
-  "location_colon_rectum",
-  "location_anus",
-  "location_liver",
-  "location_biliarytract",
-  "location_gallbladder",
-  "location_pancreas",
-  "location_peritoneum",
-  "location_notspecified" #----------anatomic location
-  )
-
-#####renamed new data table full_gi_imputated which takes all the columns from full_gi_df to impute with
-##cannot be date object
-full_gi_imputed <- subset(full_gi_df, select = cols_to_add_for_imputation)                                         
-
 library(dplyr)
 library(mice)
 library(tidyverse)
-
 
 # Set factor variables
 micedata <- full_gi_imputed %>%
@@ -1237,20 +1162,23 @@ micedata <- full_gi_imputed %>%
         location_notspecified = as.factor(location_notspecified)
     )
 
-
+# set date variables by converting them into numbers "days since 1970", need to convert back out after we have imputed
+micedata <- full_gi %>%
+    mutate(
+        completion_date = as.numeric(as.Date(completion_date) - as.Date("1970-01-01"))
+    )
 
 # Relevel to reference groups, picked reference group based on which group had the most, 
 # relevel can only be done for unordered factors, commented out ordered variables
 #full_gi$industry_any3 <- relevel(full_gi$industry_any3, ref = "Other")
-full_gi_imputed$br_phase4_ref_ph3 <- relevel(full_gi_imputed$br_phase4_ref_ph3, ref = "Phase 1/2-2")
-full_gi_imputed$new_primary_purpose_treatment <- relevel(full_gi_imputed$new_primary_purpose_treatment, ref = "Treatment")
+full_gi$br_phase4_ref_ph3 <- relevel(full_gi$br_phase4_ref_ph3, ref = "Phase 1/2-2")
+full_gi$new_primary_purpose_treatment <- relevel(full_gi$new_primary_purpose_treatment, ref = "Treatment")
 #full_gi$interv_all_intervention_types <- relevel(full_gi$interv_all_intervention_types, ref = "Biological") #----this one has multiple categories in each separated by ;
 #full_gi$br_allocation <- relevel(full_gi$br_allocation, ref = "Randomized")
-full_gi_imputed$br_masking2 <- relevel(full_gi_imputed$br_masking2, ref = "None")
+full_gi$br_masking2 <- relevel(full_gi$br_masking2, ref = "None")
 #full_gi$br_gni_lmic_hic_only <- relevel(full_gi$br_gni_lmic_hic_only, ref = "HIC Only")
 #full_gi$enrollment_type <- relevel(full_gi$enrollment_type, ref = "Actual")
 #full_gi$overall_status <- relevel(full_gi$overall_status, ref = "Completed")
-
 
 # Set random seed
 random_seed_num <- 3249
@@ -1340,25 +1268,27 @@ predictor_vars <- c(
       "early_discontinuation", 
       "industry_any3", 
       "br_phase4_ref_ph3", 
-  #"enrollment", #--just added
+  "enrollment", #--just added
       "new_enroll",
       "bintime",
       "new_primary_purpose_treatment", 
       "interv_all_intervention_types",
-  #"num_facilities",#--just added
-  #"all_regions", #--just added
-  #"num_regions", #--just added
-  #"num_countries", #--just added
+  "num_facilities",
+  "all_regions", 
+  "num_regions", 
+  "num_countries",
       "br_allocation",
       "br_masking2",
       "has_dmc",
-  #"number_of_arms",#--just added
+  "number_of_arms",
       "br_gni_lmic_hic_only", 
- #"br_trialduration", #--just added
+ "br_trialduration", 
+ #"new_first_submit",  #-- PROBLEM 
+ "completion_date",  
       "enrollment_type",
       "overall_status", 
       "were_results_reported",
-  #"br_time_until_resultsreport_or_present_inmonths", #--just added
+  "br_time_until_resultsreport_or_present_inmonths",
       "infection_any",
       "infection_helminth",
       "infection_intestines",
@@ -1401,6 +1331,7 @@ predictor_vars <- c(
       "location_notspecified"
 )
 
+
 # Pick which factors should be involved in imputation. This is a well-known
 # issue in multiple imputation. Meng (1994), Rubin (1996), 
 # Taylor et al. (2002), and White, Royston, and Wood (2011) advocate 
@@ -1416,6 +1347,7 @@ predictor_vars <- c(
 # imputation model should include all variables of the analysis, plus those 
 # highly correlated with responses or explanatory variables". For this reason,
 # we've included all variables
+	
 for (predictor_var in predictor_vars) {
     predM[predictor_var, predictor_vars] <- 1
     predM[predictor_var, predictor_var] <- 0
@@ -1430,6 +1362,15 @@ imputed <- mice(
     m = num_imputations, 
     maxit = iterations, 
     seed = random_seed_num
+)
+#doesn't use the log/poly/pnm but runs it stochastically, will work with new_first_submit
+# imputed <- mice(
+#    data = micedata, 
+#    method = "cart", 
+#    predictorMatrix = predM, 
+#    m = num_imputations, 
+#    maxit = iterations, 
+#    seed = random_seed_num
 )
 
 ## Bibliogrpahy

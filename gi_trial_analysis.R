@@ -1,6 +1,6 @@
 # File looking at GI trials
 set.seed(5)
-wants <- c('zip', 'svMisc', 'ggpubr', 'Hmisc', 'mice', 'glmnet', 'tidyverse','RPostgreSQL', 'europepmc', 'RefManageR', 'DT', 'lubridate', 'ggplot2', 'openxlsx', 'survminer', 'Kendall', 'coin')
+wants <- c('zip', 'DescTools', 'svMisc', 'ggpubr', 'Hmisc', 'mice', 'glmnet', 'tidyverse','RPostgreSQL', 'europepmc', 'RefManageR', 'DT', 'lubridate', 'ggplot2', 'openxlsx', 'survminer', 'Kendall', 'coin')
 
 # ------------------------------------- On Laptop
 
@@ -885,7 +885,7 @@ colnames(table3) <- c(
 
 # input: A dataframe, with one column that is year_trial, which represents the year of the trial. The other columns
 # are completely arbitrary, but should be considered covering an entire category, and must be true/false
-do_time_series_analysis <- function(classification, input, non_boolean_column_name = NA, year_limits = c(2008, 2017)) {
+do_time_series_analysis <- function(classification, input, num_comparisons, non_boolean_column_name = NA, year_limits = c(2008, 2017)) {
 	if (length(which(is.na(input$year_trial))) > 0) {
 		stop("Can't have NAs in the year column")
 	}
@@ -950,7 +950,7 @@ do_time_series_analysis <- function(classification, input, non_boolean_column_na
 
 	bonferroni_kendall <- combined %>%
 		summarise_at(vars(-year_trial), 
-		             function(x) ((ncol(spec_trial_growth_data) - 1)/2) * Kendall::MannKendall(x)$sl) %>% 
+		             function(x) ((num_comparisons - 1)/2) * Kendall::MannKendall(x)$sl) %>% 
 		Reduce(f = cbind) %>%
 		t()
 
@@ -961,7 +961,7 @@ do_time_series_analysis <- function(classification, input, non_boolean_column_na
 
 	bonferroni_ols <- combined %>%
 		summarise_at(vars(-year_trial), 
-		             function(x) ((ncol(spec_trial_growth_data) - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
+		             function(x) ((num_comparisons - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
 		t()
 
 	growth_statistics <- 
@@ -970,31 +970,18 @@ do_time_series_analysis <- function(classification, input, non_boolean_column_na
 	                     kendall_pval = kendall_mann,
 	                     kendall_pval_bonferroni = bonferroni_kendall,
 	                     ols_pval = ols,
-	                     ols_pval_bonferroni = bonferroni_ols) %>%
+	                     ols_pval_bonferroni = bonferroni_ols,
+                       cochrane_armitage = NA) %>%
 	    tibble::rownames_to_column('trialvar') %>%
 	    tbl_df()
 
-  if (ncol(combined) > 3) {
-    idf <- freqs %>% select(-total)
-    cochrane_armitage <- idf %>% 
-      tidyr::gather(-year_trial, key = 'bvar', value = 'freq') %>%
-      xtabs(formula = freq ~ bvar + year_trial) %>%
-      coin::chisq_test(scores = list('year_trial' = seq(nrow(idf)))) %>%
-        {
-          iresult <- .
-          print(coin::pvalue(iresult))
-          iresults <- c(
-              'armitage_pval' = coin::pvalue(iresult)
-          )
-          trialvar <- colnames(idf)[-1]
-          ifinal <-
-            as.data.frame(trialvar, stringsAsFactors = F) %>%
-            mutate(armitage_pval = iresults[1])
-          return(ifinal)
-        }
-    growth_statistics <- left_join(growth_statistics, cochrane_armitage, by = "trialvar")
-  } else {
-    growth_statistics <- growth_statistics %>% mutate(armitage_pval = NA)
+  # growth_statistics$cochrane_armitage_p <- NA
+  for (name in colnames(freqs %>% select(-year_trial, -total))) {
+    contingency <- freqs %>% 
+      mutate(not = total - !!rlang::sym(name)) %>%
+      select(!!rlang::sym(name), not)
+    cat <- CochranArmitageTest(contingency)
+    growth_statistics$cochrane_armitage[growth_statistics$trialvar == name] <- cat$p.value
   }
 
   growth_statistics <- growth_statistics %>% 
@@ -1002,19 +989,19 @@ do_time_series_analysis <- function(classification, input, non_boolean_column_na
 	return(growth_statistics)
 }
 
+num_comparisons <- 100
 ts_table <- rbind(
-  do_time_series_analysis("total", full_gi %>% select(year_trial) %>% mutate(dummy = TRUE)),
-  do_time_series_analysis("industry", full_gi, "industry_any3"),
-  do_time_series_analysis("region", full_gi %>% select(year_trial, NorthAmerica, Europe, EastAsia, neither3regions)),
-  do_time_series_analysis("gci_huc", full_gi, "br_gni_hic"),
-  do_time_series_analysis("early_discontinuation", full_gi, "early_discontinuation"),
-  do_time_series_analysis("randomization", full_gi, "br_allocation"),
-  do_time_series_analysis("masking", full_gi, "br_masking2"),
-  do_time_series_analysis("DMC", full_gi, "has_dmc"),
-  do_time_series_analysis("enrollment_type", full_gi, "enrollment_type"),
-  do_time_series_analysis("status", full_gi, "overall_status"),
-  do_time_series_analysis("reported", full_gi, "were_results_reported"),
-  do_time_series_analysis("infection_any", full_gi, "infection_any"),
+  do_time_series_analysis("total", full_gi %>% select(year_trial) %>% mutate(dummy = TRUE), num_comparisons),
+  do_time_series_analysis("industry", full_gi, num_comparisons, "industry_any3"),
+  do_time_series_analysis("region", full_gi %>% select(year_trial, NorthAmerica, Europe, EastAsia, neither3regions), num_comparisons),
+  do_time_series_analysis("gci_huc", full_gi, num_comparisons, "br_gni_hic"),
+  do_time_series_analysis("early_discontinuation", full_gi, num_comparisons, "early_discontinuation"),
+  do_time_series_analysis("randomization", full_gi, num_comparisons, "br_allocation"),
+  do_time_series_analysis("masking", full_gi, num_comparisons, "br_masking2"),
+  do_time_series_analysis("DMC", full_gi, num_comparisons, "has_dmc"),
+  do_time_series_analysis("enrollment_type", full_gi, num_comparisons, "enrollment_type"),
+  do_time_series_analysis("reported", full_gi, num_comparisons, "were_results_reported"),
+  do_time_series_analysis("infection_any", full_gi, num_comparisons, "infection_any"),
   do_time_series_analysis("disease", full_gi %>% select(
     year_trial, 
     infection_helminth,
@@ -1043,7 +1030,7 @@ ts_table <- rbind(
     pancreatitis,
     transplant,
     ulcerative_disease,
-    other)),
+    other), num_comparisons),
   do_time_series_analysis("disease_location", full_gi %>% select(
     year_trial,
     location_esophagus,
@@ -1056,5 +1043,5 @@ ts_table <- rbind(
     location_gallbladder,
     location_pancreas,
     location_peritoneum,
-    location_notspecified))
+    location_notspecified), num_comparisons)
 )

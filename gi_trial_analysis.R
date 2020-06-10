@@ -382,6 +382,7 @@ full_gi_df <-
                    
 ##add in a column representing number of regions                     
 full_gi_df <- full_gi_df %>% mutate(number_of_regions = 1 + str_count(all_regions, ";"))
+full_gi_df <- full_gi_df %>% mutate(year_trial = year(study_first_submitted_date)) 
 
 ######creating a list of all the columns in full_gi_df I think might be useful in the analysis and called it cols_to_add
 cols_to_add <- c(
@@ -502,7 +503,8 @@ cols_to_add <- c(
   "location_gallbladder",
   "location_pancreas",
   "location_peritoneum",
-  "location_notspecified" #----------anatomic location
+  "location_notspecified", #----------anatomic location
+  "year_trial"
   )
 
 #####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
@@ -866,5 +868,101 @@ colnames(table3) <- c(
   "Percentage of Completed Studies", 
   "p-value for row", 
   "p-value for trial characteristic")
-                     
-              
+
+
+######################
+
+# MANN-KENDALL AND TIME-SERIES ANALYSIS
+
+######################
+
+
+
+# df: A dataframe, with one column that is year_trial, which represents the year of the trial. The other columns
+# are completely arbitrary, but should be considered covering an entire category, and must be true/false
+do_time_series_analysis <- function(df, has_boolean_columns = TRUE, year_limits = c(2008, 2017)) {
+	if (length(which(is.na(df$year_trial))) > 0) {
+		stop("Can't have NAs in the year column")
+	}
+
+	if (!has_boolean_columns) {
+		for (colname in unique(na.omit(df$col))) {
+			df <- df %>% mutate(!! rlang::sym(colname) := 
+				ifelse(is.na(col), NA, 
+					ifelse(col == colname, TRUE, FALSE))
+				)
+		}
+
+		df <- df %>% select(-col)
+	}
+
+	# Remove all rows where all non-year columns are NA
+	remove_nas <- df[rowSums(is.na(df)) < ncol(df) - 1, ]
+
+	# Only include years in the target date range
+	remove_nas <- remove_nas %>% 
+		filter(year_trial >= year_limits[1] & year_trial <= year_limits[2])
+
+	# Calculate frequencies for each year and column
+	freqs <- remove_nas %>%
+		group_by(year_trial) %>%
+		summarise_all(.funs = list( ~sum(., na.rm = TRUE))) %>%
+		mutate(total = rowSums(.[1:ncol(remove_nas)]) - year_trial)
+
+	# Calculate percentages for each frequency, out of the total number of trials
+    percentages <- freqs %>%
+          mutate_at(vars(-one_of('year_trial', 'total')), .funs = list( ~. / total)) %>%
+          select(-total) %>%
+		  rename_at(vars(-one_of('year_trial')),
+			          function(i) paste0(i, '_pct'))
+
+	# Merge the tables into one table that has both frequencies and percentages
+	combined <- merge(freqs, percentages, by = "year_trial")
+
+	aagr <- combined %>%
+	    mutate_at(vars(-year_trial), 
+	              function(x) (x - lag(x))/lag(x)) %>%
+	    summarise_at(vars(-year_trial), 
+	                 function(x) mean(x, na.rm = TRUE)) %>%
+	    t()
+
+	cagr <- combined %>%
+		summarise_at(vars(-year_trial),
+		             function(x) ((last(x)/first(x))^ (1/(length(x) - 1))) - 1) %>%
+		t()
+
+	kendall_mann <- combined %>%
+		summarise_at(vars(-year_trial), 
+		             function(x) Kendall::MannKendall(x)$sl) %>%
+		t()
+
+	bonferroni_kendall <- combined %>%
+		summarise_at(vars(-year_trial), 
+		             function(x) ((ncol(spec_trial_growth_data) - 1)/2) * Kendall::MannKendall(x)$sl) %>% 
+		Reduce(f = cbind) %>%
+		t()
+
+	ols <- combined %>%
+		summarise_at(vars(-year_trial), 
+		             function(x) summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
+		t()
+
+	bonferroni_ols <- combined %>%
+		summarise_at(vars(-year_trial), 
+		             function(x) ((ncol(spec_trial_growth_data) - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
+		t()
+
+	growth_statistics <- 
+	    cbind.data.frame(aagr = aagr,
+	                     cagr = cagr,
+	                     kendall_pval = kendall_mann,
+	                     kendall_pval_bonferroni = bonferroni_kendall,
+	                     ols_pval = ols,
+	                     old_pval_bonferroni = bonferroni_ols) %>%
+	    tibble::rownames_to_column('trialvar') %>%
+	    tbl_df()
+
+	return(growth_statistics)
+}
+
+

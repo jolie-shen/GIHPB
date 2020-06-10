@@ -872,7 +872,6 @@ colnames(table3) <- c(
   "Percentage of Completed Studies", 
   "p-value for row", 
   "p-value for trial characteristic")
-<<<<<<< HEAD
 
 
 ######################
@@ -1027,7 +1026,7 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
 	return(growth_statistics)
 }
 
-num_comparisons <- 50
+num_comparisons <- 40
 ts_table <- rbind(
   do_time_series_analysis("total", full_gi %>% select(year_trial) %>% mutate(dummy = TRUE), num_comparisons),
   do_time_series_analysis("industry", full_gi, num_comparisons, "industry_any3"),
@@ -1084,8 +1083,11 @@ ts_table <- rbind(
     location_peritoneum,
     location_notspecified), num_comparisons)
 )
-=======
-                     
+
+
+
+
+
   #-------MULTIPLE IMPUTATION------#
  cols_to_add_for_imputation <- c(
 "nct_id",
@@ -1428,5 +1430,5 @@ imputed <- mice(
 # Van Buuren, S, Boshuizen, HC, & Knook, DL. (1999). Multiple imputation of missing blood pressure covariates in survival analysis. Statistics in Medicine, 18, 681–694.
 # van Buuren S, Brand JPL, Groothuis-Oudshoorn CGM, Rubin DB (2006b). “Fully Conditional Specification in Multivariate Imputation.” Journal of Statistical Computation and Simulation, 76(12), 1049–1064.
 # Van Buuren, S. 2018. Flexible Imputation of Missing Data. Second Edition. Boca Raton, FL: Chapman & Hall/CRC.
-                                           
->>>>>>> upstream/working
+
+

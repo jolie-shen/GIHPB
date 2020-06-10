@@ -504,7 +504,12 @@ cols_to_add <- c(
   "location_pancreas",
   "location_peritoneum",
   "location_notspecified", #----------anatomic location
-  "year_trial"
+  "year_trial",
+  "NorthAmerica", 
+  "Europe", 
+  "EastAsia", 
+  "neither3regions",
+  "br_gni_hic"
   )
 
 #####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
@@ -878,23 +883,29 @@ colnames(table3) <- c(
 
 
 
-# df: A dataframe, with one column that is year_trial, which represents the year of the trial. The other columns
+# input: A dataframe, with one column that is year_trial, which represents the year of the trial. The other columns
 # are completely arbitrary, but should be considered covering an entire category, and must be true/false
-do_time_series_analysis <- function(df, has_boolean_columns = TRUE, year_limits = c(2008, 2017)) {
-	if (length(which(is.na(df$year_trial))) > 0) {
+do_time_series_analysis <- function(classification, input, non_boolean_column_name = NA, year_limits = c(2008, 2017)) {
+	if (length(which(is.na(input$year_trial))) > 0) {
 		stop("Can't have NAs in the year column")
 	}
 
-	if (!has_boolean_columns) {
+	if (!is.na(non_boolean_column_name)) {
+    df <- input %>% 
+      mutate(col = !! rlang::sym(non_boolean_column_name)) %>%
+      select(year_trial, col)
+    
 		for (colname in unique(na.omit(df$col))) {
-			df <- df %>% mutate(!! rlang::sym(colname) := 
+			df <- df %>% mutate(!! rlang::sym(as.character(colname)) := 
 				ifelse(is.na(col), NA, 
-					ifelse(col == colname, TRUE, FALSE))
+					ifelse(as.character(col) == colname, TRUE, FALSE))
 				)
 		}
 
 		df <- df %>% select(-col)
-	}
+	} else {
+    df <- input
+  }
 
 	# Remove all rows where all non-year columns are NA
 	remove_nas <- df[rowSums(is.na(df)) < ncol(df) - 1, ]
@@ -905,19 +916,20 @@ do_time_series_analysis <- function(df, has_boolean_columns = TRUE, year_limits 
 
 	# Calculate frequencies for each year and column
 	freqs <- remove_nas %>%
+    mutate(total = rowSums(is.na(.)) < ncol(freqs) - 1) %>%
 		group_by(year_trial) %>%
-		summarise_all(.funs = list( ~sum(., na.rm = TRUE))) %>%
-		mutate(total = rowSums(.[1:ncol(remove_nas)]) - year_trial)
+		summarise_all(.funs = list( ~sum(., na.rm = TRUE)))
 
 	# Calculate percentages for each frequency, out of the total number of trials
-    percentages <- freqs %>%
-          mutate_at(vars(-one_of('year_trial', 'total')), .funs = list( ~. / total)) %>%
-          select(-total) %>%
-		  rename_at(vars(-one_of('year_trial')),
-			          function(i) paste0(i, '_pct'))
+  percentages <- freqs %>%
+    mutate_at(vars(-one_of('year_trial', 'total')), .funs = list( ~. / total)) %>%
+    select(-total) %>%
+    rename_at(vars(-one_of('year_trial')),
+      function(i) paste0(i, '_pct'))
 
 	# Merge the tables into one table that has both frequencies and percentages
 	combined <- merge(freqs, percentages, by = "year_trial")
+  combined <- combined %>% select(-total)
 
 	aagr <- combined %>%
 	    mutate_at(vars(-year_trial), 
@@ -960,9 +972,65 @@ do_time_series_analysis <- function(df, has_boolean_columns = TRUE, year_limits 
 	                     ols_pval = ols,
 	                     old_pval_bonferroni = bonferroni_ols) %>%
 	    tibble::rownames_to_column('trialvar') %>%
-	    tbl_df()
+	    tbl_df() %>%
+      mutate(trialvar = paste0(classification, "-", trialvar))
 
 	return(growth_statistics)
 }
 
-
+ts_table <- rbind(
+  do_time_series_analysis("total", full_gi %>% select(year_trial) %>% mutate(dummy = TRUE)),
+  do_time_series_analysis("industry", full_gi, "industry_any3"),
+  do_time_series_analysis("region", full_gi %>% select(year_trial, NorthAmerica, Europe, EastAsia, neither3regions)),
+  do_time_series_analysis("gci_huc", full_gi, "br_gni_hic"),
+  do_time_series_analysis("early_discontinuation", full_gi, "early_discontinuation"),
+  do_time_series_analysis("randomization", full_gi, "br_allocation"),
+  do_time_series_analysis("masking", full_gi, "br_masking2"),
+  do_time_series_analysis("DMC", full_gi, "has_dmc"),
+  do_time_series_analysis("enrollment_type", full_gi, "enrollment_type"),
+  do_time_series_analysis("status", full_gi, "overall_status"),
+  do_time_series_analysis("reported", full_gi, "were_results_reported"),
+  do_time_series_analysis("infection_any", full_gi, "infection_any"),
+  do_time_series_analysis("disease", full_gi %>% select(
+    year_trial, 
+    infection_helminth,
+    infection_intestines,
+    infection_hepatitis,
+    neoplasia_primary,
+    neoplasia_metastasis,
+    neoplasia_disease,
+    abdominal_hernia,
+    appendicitis,
+    cirrhosis,
+    diverticular_disease,
+    fecal_diversion,
+    foreign_body,
+    functional_disorder,
+    gallstones,
+    gerd,
+    hemorrhoids,
+    hypoxic,
+    ileus,
+    ibd, 
+    malabsorptive,
+    motility,
+    nafld_nash,
+    nonspecific,
+    pancreatitis,
+    transplant,
+    ulcerative_disease,
+    other)),
+  do_time_series_analysis("disease_location", full_gi %>% select(
+    year_trial,
+    location_esophagus,
+    location_stomach,
+    location_small_intestine,
+    location_colon_rectum,
+    location_anus,
+    location_liver,
+    location_biliarytract,
+    location_gallbladder,
+    location_pancreas,
+    location_peritoneum,
+    location_notspecified))
+)

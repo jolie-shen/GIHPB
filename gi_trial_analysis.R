@@ -1386,4 +1386,33 @@ imputed <- mice(
 # van Buuren S, Brand JPL, Groothuis-Oudshoorn CGM, Rubin DB (2006b). “Fully Conditional Specification in Multivariate Imputation.” Journal of Statistical Computation and Simulation, 76(12), 1049–1064.
 # Van Buuren, S. 2018. Flexible Imputation of Missing Data. Second Edition. Boca Raton, FL: Chapman & Hall/CRC.
 
+			    
+############################
+#LOGISTIC REGRESSION
 
+# Pool uses Rubin's Rules to pool models built on a matrix of imputed data sets 
+# (basically builds a model for every single imputed dataset, i.e. all 25, and 
+# then uses this set of rules to pool to coefficents into an average)
+# glm is the logistic regression function. adjusted risk ratio is the e^coefficient value provided
+
+# Function that returns the data associated with a coefficient term
+get_data <- function(pooled, term) {
+    summ <- summary(pooled)
+    for (i in 1:length(summ$term)) {
+        if ((summ$term)[i] == term) {
+            v <- c(exp((summ$estimate)[i]), (summ$std.error)[i], (summ$p.value)[i])
+            return(v)
+        }
+    }
+    return(c(NA,NA,NA))
+}
+
+#multivariate, can add in whatever varieables			     
+multivar <- pool(with(
+    imputed, 
+    glm(early_discontinuation ~ early_discontinuation + industry_any2b + 
+      br_phase4_ref_ph3 + enrollment +new_enroll + bintime + new_primary_purpose_treatment + 
+      num_facilities + num_regions + br_allocation + br_masking2, family = binomial(link=logit))
+    ))
+	    
+			     

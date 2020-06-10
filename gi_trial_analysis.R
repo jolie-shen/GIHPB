@@ -397,10 +397,10 @@ cols_to_add <- c(
   #Only trials completed by March 8, 2017 were included in the analysis of results reporting to 
   #align with federal mandates for delayed submission of results information within three years of trial completion
 
-  "industry_any3", 
+  #"industry_any3", 
   #"industry_any2" #changes all US Govt to NIH, similar to new_industry_any3_ref_nih except industry_any2 has an added category of US Fed
   #"new_industry_any3_ref_nih", 
-  #"industry_any2b", 
+  "industry_any2b", 
   #"new_industry_any2b_ref_usgovt", #-----Sponsorship/Funding
 
   #"phase", #problem with this is it has "Early Phase 1, and Phase1/Phase2 and Phas 2/Phase3 categories. Not sure what to do about these
@@ -512,7 +512,8 @@ cols_to_add <- c(
   "br_gni_hic"
   )
                                                                
-#####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
+# renamed new data table full_gi which takes all the columns from full_gi_df that I 
+# thought would be useful (i.e. the ones I put into the cols_to_add group)
 full_gi <- subset(full_gi_df, select = cols_to_add)
 
 ####################################
@@ -530,8 +531,8 @@ full_gi <- subset(full_gi_df, select = cols_to_add)
                
 get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
 
-# if you do have a treat_as_csv (such as in regions, it loops and finds all the unique values and counts it for each of the region). 
-# If we say FALSE or we don't say anything when we call get_freq.
+#if you do have a treat_as_csv (such as in regions, it loops and finds all the unique values and counts it for each of the region). 
+#If we say FALSE or we don't say anything when we call get_freq, lines 515-522 are not executed and 523-526 is executed.
   if (treat_as_csv) {
     uniques <- c()
     for (val in na.omit(df$var)) {
@@ -662,7 +663,7 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
     ifelse(!is.na(num_facilities) & num_facilities == 1, "One", NA))))), cols)
 
   #Sponsor Type
-  sponsor <- get_freqs("Sponsor Type", already_mutated %>% mutate(var = industry_any3), cols)
+  sponsor <- get_freqs("Sponsor Type", already_mutated %>% mutate(var = industry_any2b), cols)
 
   #Were Results Reported? code is slightly different because this is a boolean column (True/False)
   reported <- get_freqs("Were Results Reported", already_mutated %>% mutate(var = 
@@ -844,7 +845,7 @@ colnames(table1) <- c(
 
 #------TABLE 2 SIMILAR TO OPHTHO TRIAL------# 
 #-----STRATIFIED BY SPONSORSHIP--------#                    
-table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any3), c("Industry", "NIH", "Other"), TRUE))
+table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any2b), c("Industry", "US.Govt", "Other"), TRUE))
 colnames(table2) <- c(
   "Trial Characteristic", 
   "Value", 
@@ -1037,7 +1038,7 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
 num_comparisons <- 40
 ts_table <- rbind(
   do_time_series_analysis("total", full_gi %>% select(year_trial) %>% mutate(dummy = TRUE), num_comparisons),
-  do_time_series_analysis("industry", full_gi, num_comparisons, "industry_any3"),
+  do_time_series_analysis("industry", full_gi, num_comparisons, "industry_any2b"),
   do_time_series_analysis("region", full_gi %>% select(year_trial, NorthAmerica, Europe, EastAsia, neither3regions), num_comparisons),
   do_time_series_analysis("gci_huc", full_gi, num_comparisons, "br_gni_hic"),
   do_time_series_analysis("early_discontinuation", full_gi, num_comparisons, "early_discontinuation"),
@@ -1109,7 +1110,7 @@ library(tidyverse)
 micedata <- full_gi %>%
     mutate(
         early_discontinuation = as.factor(early_discontinuation),
-        industry_any3 = as.factor(industry_any3),
+        industry_any2b = as.factor(industry_any2b),
         br_phase4_ref_ph3 = as.factor(br_phase4_ref_ph3),
         bintime = as.factor(bintime),
         new_primary_purpose_treatment = as.factor(new_primary_purpose_treatment),
@@ -1170,7 +1171,7 @@ micedata <- full_gi %>%
 
 # Relevel to reference groups, picked reference group based on which group had the most, 
 # relevel can only be done for unordered factors, commented out ordered variables
-#full_gi$industry_any3 <- relevel(full_gi$industry_any3, ref = "Other")
+#full_gi$industry_any2b <- relevel(full_gi$industry_any2b, ref = "Other")
 full_gi$br_phase4_ref_ph3 <- relevel(full_gi$br_phase4_ref_ph3, ref = "Phase 1/2-2")
 full_gi$new_primary_purpose_treatment <- relevel(full_gi$new_primary_purpose_treatment, ref = "Treatment")
 #full_gi$interv_all_intervention_types <- relevel(full_gi$interv_all_intervention_types, ref = "Biological") #----this one has multiple categories in each separated by ;
@@ -1216,7 +1217,7 @@ predM <- init$predictorMatrix
 # For dichotomous variables, use logistic regression predictors, and for
 # categorical variables, use polytonomous regression
 # For continuous variables, use predictive mean matching by default 
-methods[c("industry_any3", "br_phase4_ref_ph3","new_primary_purpose_treatment", 
+methods[c("industry_any2b", "br_phase4_ref_ph3","new_primary_purpose_treatment", 
       "interv_all_intervention_types","br_masking2","overall_status")] = "polyreg"
 methods[c("early_discontinuation", "bintime", "br_allocation", "has_dmc", "br_gni_lmic_hic_only", "enrollment_type",  
       "were_results_reported", 
@@ -1266,7 +1267,7 @@ predM <- ifelse(predM < 0, 1, 0)
 # Variables which will be used for prediction
 predictor_vars <- c(
       "early_discontinuation", 
-      "industry_any3", 
+      "industry_any2b", 
       "br_phase4_ref_ph3", 
   "enrollment", #--just added
       "new_enroll",
@@ -1371,7 +1372,7 @@ imputed <- mice(
 #    m = num_imputations, 
 #    maxit = iterations, 
 #    seed = random_seed_num
-)
+# )
 
 ## Bibliogrpahy
 # Allison, PD. (2002). Missing data. Thousand Oaks, CA: Sage.

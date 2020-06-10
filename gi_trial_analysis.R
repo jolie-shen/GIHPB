@@ -970,11 +970,35 @@ do_time_series_analysis <- function(classification, input, non_boolean_column_na
 	                     kendall_pval = kendall_mann,
 	                     kendall_pval_bonferroni = bonferroni_kendall,
 	                     ols_pval = ols,
-	                     old_pval_bonferroni = bonferroni_ols) %>%
+	                     ols_pval_bonferroni = bonferroni_ols) %>%
 	    tibble::rownames_to_column('trialvar') %>%
-	    tbl_df() %>%
-      mutate(trialvar = paste0(classification, "-", trialvar))
+	    tbl_df()
 
+  if (ncol(combined) > 3) {
+    idf <- freqs %>% select(-total)
+    cochrane_armitage <- idf %>% 
+      tidyr::gather(-year_trial, key = 'bvar', value = 'freq') %>%
+      xtabs(formula = freq ~ bvar + year_trial) %>%
+      coin::chisq_test(scores = list('year_trial' = seq(nrow(idf)))) %>%
+        {
+          iresult <- .
+          print(coin::pvalue(iresult))
+          iresults <- c(
+              'armitage_pval' = coin::pvalue(iresult)
+          )
+          trialvar <- colnames(idf)[-1]
+          ifinal <-
+            as.data.frame(trialvar, stringsAsFactors = F) %>%
+            mutate(armitage_pval = iresults[1])
+          return(ifinal)
+        }
+    growth_statistics <- left_join(growth_statistics, cochrane_armitage, by = "trialvar")
+  } else {
+    growth_statistics <- growth_statistics %>% mutate(armitage_pval = NA)
+  }
+
+  growth_statistics <- growth_statistics %>% 
+    mutate(trialvar = paste0(classification, "-", trialvar))
 	return(growth_statistics)
 }
 

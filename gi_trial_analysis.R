@@ -867,20 +867,30 @@ colnames(table3) <- c(
                      
   #-------MULTIPLE IMPUTATION------#
  cols_to_add_for_imputation <- c(
+  "nct_id",
   "early_discontinuation", 
   "industry_any3", 
   "br_phase4_ref_ph3", 
-  "new_enroll",#-----Number of participants enrolled
+  "enrollment", 
+  "new_enroll", #-----Number of participants enrolled
   "bintime", #------duration 2007-2012, 2013-2018
   "new_primary_purpose_treatment", #----primary objective of the intervention  
   "interv_all_intervention_types", #-----type of intervention
+  "num_facilities",
+  "all_regions",
+  "num_regions",
+  "num_countries",
+
   "br_allocation", #this changes all "NA" from allocation into "non-randomized" 
   "br_masking2", #changes all "quadruple blinded" in br_masking2 to "double", changes all "None (Open Label)" to "None"
   "has_dmc", #--------oversight by a data-monitoring committee
+  "number_of_arms",
   "br_gni_lmic_hic_only", #This will give you which were only in HIC and which were only in LMIC.
+  "br_trialduration", 
   "enrollment_type", #------enrollment type
   "overall_status", #-----status, if we want to redefine discontinuation
   "were_results_reported",
+  "br_time_until_resultsreport_or_present_inmonths", #--just added
 
   "infection_any",
   "infection_helminth",
@@ -909,7 +919,9 @@ colnames(table3) <- c(
   "pancreatitis",
   "transplant",
   "ulcerative_disease",
-  "other", #----------disease
+  "other", 
+  "all_conditions",
+  "all_mesh",#----------disease
 
   "location_esophagus",
   "location_stomach",
@@ -940,13 +952,24 @@ micedata <- full_gi_imputed %>%
         industry_any3 = as.factor(industry_any3),
         br_phase4_ref_ph3 = as.factor(br_phase4_ref_ph3),
         bintime = as.factor(bintime),
+      enrollment = as.factor(enrollment),
+      new_enroll = as.factor(new_enroll),
+      bintime = as.factor(bintime),
         new_primary_purpose_treatment = as.factor(new_primary_purpose_treatment),
         interv_all_intervention_types = as.factor(interv_all_intervention_types),
+      num_facilities = as.factor(num_facilities),
+      all_regions = as.factor(all_regions),
+      num_regions = as.factor(num_regions),
+      num_countries = as.factor(num_countries),
         br_allocation = as.factor(br_allocation),
         br_masking2 = as.factor(br_masking2),
         has_dmc = as.factor(has_dmc),
+      number_of_arms = as.factor(number_of_arms),
         br_gni_lmic_hic_only = as.factor(br_gni_lmic_hic_only),
+      br_trialduration = as.factor(br_trialduration),
         enrollment_type = as.factor(enrollment_type),
+      were_results_reported = as.factor(were_results_reported),
+      br_time_until_resultsreport_or_present_inmonths = as.factor(br_time_until_resultsreport_or_present_inmonths),
         overall_status = as.factor(overall_status),
         infection_any = as.factor(infection_any),
         infection_helminth = as.factor(infection_helminth),
@@ -975,6 +998,9 @@ micedata <- full_gi_imputed %>%
         transplant = as.factor(transplant),
         ulcerative_disease = as.factor(ulcerative_disease),
         other = as.factor(other),
+        all_conditions = as.factor(all_conditions),
+        all_mesh = as.factor(all_mesh),
+      
         location_esophagus = as.factor(location_esophagus),
         location_stomach = as.factor(location_stomach),
         location_small_intestine = as.factor(location_small_intestine),
@@ -1088,19 +1114,29 @@ predM <- ifelse(predM < 0, 1, 0)
 
 # Variables which will be used for prediction
 predictor_vars <- c(
-      "early_discontinuation", 
+"nct_id", #--just added      "early_discontinuation", 
       "industry_any3", 
       "br_phase4_ref_ph3", 
+  "enrollment", #--just added
+      "new_enroll",
       "bintime",
       "new_primary_purpose_treatment", 
       "interv_all_intervention_types",
+  "num_facilities",#--just added
+  "all_regions", #--just added
+  "num_regions", #--just added
+  "num_countries", #--just added
       "br_allocation",
       "br_masking2",
       "has_dmc",
+  "number_of_arms",#--just added
       "br_gni_lmic_hic_only", 
+  "br_trialduration", #--just added
       "enrollment_type",
       "overall_status", 
       "were_results_reported",
+  "br_time_until_resultsreport_or_present_inmonths", #--just added
+
       "infection_any",
       "infection_helminth",
       "infection_intestines",
@@ -1129,6 +1165,8 @@ predictor_vars <- c(
       "transplant",
       "ulcerative_disease",
       "other",
+  "all_conditions",
+  "all_mesh",
       "location_esophagus",
       "location_stomach",
       "location_small_intestine",

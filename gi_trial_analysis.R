@@ -1,6 +1,6 @@
 # File looking at GI trials
 set.seed(5)
-wants <- c('zip', 'DescTools', 'svMisc', 'ggpubr', 'Hmisc', 'mice', 'glmnet', 'tidyverse','RPostgreSQL', 'europepmc', 'RefManageR', 'DT', 'lubridate', 'ggplot2', 'openxlsx', 'survminer', 'Kendall', 'coin')
+wants <- c('zip', 'DescTools', 'svMisc', 'ggpubr', 'Hmisc', 'mice', 'glmnet', 'tidyverse','RPostgreSQL', 'europepmc', 'RefManageR', 'DT', 'lubridate', 'ggplot2', 'openxlsx', 'survminer', 'Kendall', 'coin', 'dplyr')
 
 # ------------------------------------- On Laptop
 
@@ -511,9 +511,8 @@ cols_to_add <- c(
   "neither3regions",
   "br_gni_hic"
   )
-
+                                                               
 #####renamed new data table full_gi which takes all the columns from full_gi_df that I thought would be useful (i.e. the ones I put into the cols_to_add group)
-
 full_gi <- subset(full_gi_df, select = cols_to_add)
                      
 ##created a new function that does the p-values and frequency tables
@@ -873,6 +872,7 @@ colnames(table3) <- c(
   "Percentage of Completed Studies", 
   "p-value for row", 
   "p-value for trial characteristic")
+<<<<<<< HEAD
 
 
 ######################
@@ -1084,3 +1084,349 @@ ts_table <- rbind(
     location_peritoneum,
     location_notspecified), num_comparisons)
 )
+=======
+                     
+  #-------MULTIPLE IMPUTATION------#
+ cols_to_add_for_imputation <- c(
+"nct_id",
+  "early_discontinuation", 
+  "industry_any3", 
+  "br_phase4_ref_ph3", 
+"enrollment", 
+  "new_enroll", #-----Number of participants enrolled
+  "bintime", #------duration 2007-2012, 2013-2018
+  "new_primary_purpose_treatment", #----primary objective of the intervention  
+  "interv_all_intervention_types", #-----type of intervention
+"num_facilities",
+"all_regions",
+"num_regions",
+"num_countries",
+  "br_allocation", #this changes all "NA" from allocation into "non-randomized" 
+  "br_masking2", #changes all "quadruple blinded" in br_masking2 to "double", changes all "None (Open Label)" to "None"
+  "has_dmc", #--------oversight by a data-monitoring committee
+"number_of_arms",
+  "br_gni_lmic_hic_only", #This will give you which were only in HIC and which were only in LMIC.
+   #new_first_submit
+"br_trialduration", 
+  "enrollment_type", #------enrollment type
+  "overall_status", #-----status, if we want to redefine discontinuation
+   #completion_date
+  "were_results_reported",
+"br_time_until_resultsreport_or_present_inmonths", #--just added
+
+  "infection_any",
+  "infection_helminth",
+  "infection_intestines",
+  "infection_hepatitis",
+  "neoplasia_primary",
+  "neoplasia_metastasis",
+  "neoplasia_disease",
+  "abdominal_hernia",
+  "appendicitis",
+  "cirrhosis",
+  "diverticular_disease",
+  "fecal_diversion",
+  "foreign_body",
+  "functional_disorder",
+  "gallstones",
+  "gerd",
+  "hemorrhoids",
+  "hypoxic",
+  "ileus",
+  "ibd", 
+  "malabsorptive",
+  "motility",
+  "nafld_nash",
+  "nonspecific",
+  "pancreatitis",
+  "transplant",
+  "ulcerative_disease",
+  "other", #----------disease
+
+  "location_esophagus",
+  "location_stomach",
+  "location_small_intestine",
+  "location_colon_rectum",
+  "location_anus",
+  "location_liver",
+  "location_biliarytract",
+  "location_gallbladder",
+  "location_pancreas",
+  "location_peritoneum",
+  "location_notspecified" #----------anatomic location
+  )
+
+#####renamed new data table full_gi_imputated which takes all the columns from full_gi_df to impute with
+##cannot be date object
+full_gi_imputed <- subset(full_gi_df, select = cols_to_add_for_imputation)                                         
+
+library(dplyr)
+library(mice)
+library(tidyverse)
+
+
+# Set factor variables
+micedata <- full_gi_imputed %>%
+    mutate(
+        early_discontinuation = as.factor(early_discontinuation),
+        industry_any3 = as.factor(industry_any3),
+        br_phase4_ref_ph3 = as.factor(br_phase4_ref_ph3),
+        bintime = as.factor(bintime),
+        new_primary_purpose_treatment = as.factor(new_primary_purpose_treatment),
+        interv_all_intervention_types = as.factor(interv_all_intervention_types),
+        br_allocation = as.factor(br_allocation),
+        br_masking2 = as.factor(br_masking2),
+        has_dmc = as.factor(has_dmc),
+        br_gni_lmic_hic_only = as.factor(br_gni_lmic_hic_only),
+        enrollment_type = as.factor(enrollment_type),
+        were_results_reported = as.factor(were_results_reported),
+        overall_status = as.factor(overall_status),
+        infection_any = as.factor(infection_any),
+        infection_helminth = as.factor(infection_helminth),
+        infection_intestines = as.factor(infection_intestines),
+        infection_hepatitis = as.factor(infection_hepatitis),
+        neoplasia_metastasis = as.factor(neoplasia_metastasis),
+        neoplasia_disease = as.factor(neoplasia_disease),
+        abdominal_hernia = as.factor(abdominal_hernia),
+        appendicitis = as.factor(appendicitis),
+        cirrhosis = as.factor(cirrhosis),
+        diverticular_disease = as.factor(diverticular_disease),
+        fecal_diversion = as.factor(fecal_diversion),
+        foreign_body = as.factor(foreign_body),
+        functional_disorder = as.factor(functional_disorder),
+        gallstones = as.factor(gallstones),
+        gerd = as.factor(gerd),
+        hemorrhoids = as.factor(hemorrhoids),
+        hypoxic = as.factor(hypoxic),
+        ileus = as.factor(ileus),
+        ibd = as.factor(ibd),
+        malabsorptive = as.factor(malabsorptive),
+        motility = as.factor(motility),
+        nafld_nash = as.factor(nafld_nash),
+        nonspecific = as.factor(nonspecific),
+        pancreatitis = as.factor(pancreatitis),
+        transplant = as.factor(transplant),
+        ulcerative_disease = as.factor(ulcerative_disease),
+        other = as.factor(other),
+      
+        location_esophagus = as.factor(location_esophagus),
+        location_stomach = as.factor(location_stomach),
+        location_small_intestine = as.factor(location_small_intestine),
+        location_colon_rectum = as.factor(location_colon_rectum),
+        location_anus = as.factor(location_anus),
+        location_liver = as.factor(location_liver),
+        location_biliarytract = as.factor(location_biliarytract),
+        location_gallbladder = as.factor(location_gallbladder),
+        location_pancreas = as.factor(location_pancreas),
+        location_peritoneum = as.factor(location_peritoneum),
+        location_notspecified = as.factor(location_notspecified)
+    )
+
+
+
+# Relevel to reference groups, picked reference group based on which group had the most, 
+# relevel can only be done for unordered factors, commented out ordered variables
+#full_gi$industry_any3 <- relevel(full_gi$industry_any3, ref = "Other")
+full_gi_imputed$br_phase4_ref_ph3 <- relevel(full_gi_imputed$br_phase4_ref_ph3, ref = "Phase 1/2-2")
+full_gi_imputed$new_primary_purpose_treatment <- relevel(full_gi_imputed$new_primary_purpose_treatment, ref = "Treatment")
+#full_gi$interv_all_intervention_types <- relevel(full_gi$interv_all_intervention_types, ref = "Biological") #----this one has multiple categories in each separated by ;
+#full_gi$br_allocation <- relevel(full_gi$br_allocation, ref = "Randomized")
+full_gi_imputed$br_masking2 <- relevel(full_gi_imputed$br_masking2, ref = "None")
+#full_gi$br_gni_lmic_hic_only <- relevel(full_gi$br_gni_lmic_hic_only, ref = "HIC Only")
+#full_gi$enrollment_type <- relevel(full_gi$enrollment_type, ref = "Actual")
+#full_gi$overall_status <- relevel(full_gi$overall_status, ref = "Completed")
+
+
+# Set random seed
+random_seed_num <- 3249
+set.seed(random_seed_num)
+
+# This number was originally set by Rubin, and 5 was believed to be enough. 
+# Since then, Bodner (2008), White et al. (2011) and Graham, Olchowski, 
+# and Gilreath (2007) have all suggested this can and should be higher. 
+# Graham et. al suggests that "researchers using MI should perform many 
+# more imputations than previously considered sufficient", and White 
+# suggested a lower bound to be 100 * the percent of cases and then to 
+# go slightly higher, which here is 28. Graham suggests 20 imputations 
+# for 10% to 30% of missing data. The main conclusion of the recent literature
+# is, "the number of imputations should be similar to the percentage of 
+# cases that are incomplete." Given the computational expense and the above
+# literature, plus the small amount of missing data, a value of 10 seems valid
+num_imputations <- 1
+
+# Royston and White (2011) and Van Buuren et al. (1999) have all suggested
+# that more than 10 cycles are needed for the convergence of the sampling
+# distribution of imputed values, but it has also been found that it can be
+# satisfactory with just 5-10 (Brand 1999; vanBuuren et al. 2006b). However,
+# they also note that while slower, added extra iterations is not a bad thing.
+# Van Buuren 2018 says 5-20 iterations is enough to reach convergence. However,
+# we ran the well-known method described in "MICE in R" from the Journal of 
+# Statistical Software (2011), and found good convergence using just 10 
+# iterations. As a precaution, I've upped this to 20.
+iterations <- 1
+
+# Simply just set up the methods and predictor matrices, as suggested in Heymans and Eekhout's "Applied Missing Data Analysis"
+init <- mice(micedata, maxit = 0) 
+methods <- init$method
+predM <- init$predictorMatrix
+
+# For dichotomous variables, use logistic regression predictors, and for
+# categorical variables, use polytonomous regression
+# For continuous variables, use predictive mean matching by default 
+methods[c("industry_any3", "br_phase4_ref_ph3","new_primary_purpose_treatment", 
+      "interv_all_intervention_types","br_masking2","overall_status")] = "polyreg"
+methods[c("early_discontinuation", "bintime", "br_allocation", "has_dmc", "br_gni_lmic_hic_only", "enrollment_type",  
+      "were_results_reported", 
+      "infection_any",
+      "infection_helminth",
+      "infection_intestines",
+      "infection_hepatitis",
+      "neoplasia_primary",
+      "neoplasia_metastasis",
+      "neoplasia_disease",
+      "abdominal_hernia",
+      "appendicitis",
+      "cirrhosis",
+      "diverticular_disease",
+      "fecal_diversion",
+      "foreign_body",
+      "functional_disorder",
+      "gallstones",
+      "gerd",
+      "hemorrhoids",
+      "hypoxic",
+      "ileus",
+      "ibd", 
+      "malabsorptive",
+      "motility",
+      "nafld_nash",
+      "nonspecific",
+      "pancreatitis",
+      "transplant",
+      "ulcerative_disease",
+      "other",
+      "location_esophagus",
+      "location_stomach",
+      "location_small_intestine",
+      "location_colon_rectum",
+      "location_anus",
+      "location_liver",
+      "location_biliarytract",
+      "location_gallbladder",
+      "location_pancreas",
+      "location_peritoneum",
+      "location_notspecified")] = "logreg" 
+
+# Set all variables to 0 to begin with
+predM <- ifelse(predM < 0, 1, 0)
+
+# Variables which will be used for prediction
+predictor_vars <- c(
+      "early_discontinuation", 
+      "industry_any3", 
+      "br_phase4_ref_ph3", 
+  #"enrollment", #--just added
+      "new_enroll",
+      "bintime",
+      "new_primary_purpose_treatment", 
+      "interv_all_intervention_types",
+  #"num_facilities",#--just added
+  #"all_regions", #--just added
+  #"num_regions", #--just added
+  #"num_countries", #--just added
+      "br_allocation",
+      "br_masking2",
+      "has_dmc",
+  #"number_of_arms",#--just added
+      "br_gni_lmic_hic_only", 
+ #"br_trialduration", #--just added
+      "enrollment_type",
+      "overall_status", 
+      "were_results_reported",
+  #"br_time_until_resultsreport_or_present_inmonths", #--just added
+      "infection_any",
+      "infection_helminth",
+      "infection_intestines",
+      "infection_hepatitis",
+      "neoplasia_primary",
+      "neoplasia_metastasis",
+      "neoplasia_disease",
+      "abdominal_hernia",
+      "appendicitis",
+      "cirrhosis",
+      "diverticular_disease",
+      "fecal_diversion",
+      "foreign_body",
+      "functional_disorder",
+      "gallstones",
+      "gerd",
+      "hemorrhoids",
+      "hypoxic",
+      "ileus",
+      "ibd", 
+      "malabsorptive",
+      "motility",
+      "nafld_nash",
+      "nonspecific",
+      "pancreatitis",
+      "transplant",
+      "ulcerative_disease",
+      "other",
+ 
+      "location_esophagus",
+      "location_stomach",
+      "location_small_intestine",
+      "location_colon_rectum",
+      "location_anus",
+      "location_liver",
+      "location_biliarytract",
+      "location_gallbladder",
+      "location_pancreas",
+      "location_peritoneum",
+      "location_notspecified"
+)
+
+# Pick which factors should be involved in imputation. This is a well-known
+# issue in multiple imputation. Meng (1994), Rubin (1996), 
+# Taylor et al. (2002), and White, Royston, and Wood (2011) advocate 
+# including all variables associated with the probability of missingness, 
+# along with the variables contained in the dataset, and van Buuren (1999) 
+# found that, "Asa a general rule, using all available information yields 
+# multiple imputations that have minimal bias and maximal certainty. This 
+# principle implies that the number of predictors should be as large as 
+# possible."  Enders, Dietz, Montague, and Dixon (2006), Graham (2009), and 
+# Jolani, Van Buuren, and Frank (2011), the imputation model should be more
+#  general than the analysis model in order to capture more associations 
+# between the variables. Finally, it is summed up by Hardt (2012): "the 
+# imputation model should include all variables of the analysis, plus those 
+# highly correlated with responses or explanatory variables". For this reason,
+# we've included all variables
+for (predictor_var in predictor_vars) {
+    predM[predictor_var, predictor_vars] <- 1
+    predM[predictor_var, predictor_var] <- 0
+}
+
+# We use multiple imputation using MICE. This is a set of multiple imputations for 
+# data that is MNAR. 
+imputed <- mice(
+    data = micedata, 
+    method = methods, 
+    predictorMatrix = predM, 
+    m = num_imputations, 
+    maxit = iterations, 
+    seed = random_seed_num
+)
+
+## Bibliogrpahy
+# Allison, PD. (2002). Missing data. Thousand Oaks, CA: Sage.
+# Brand JPL (1999). Development, Implementation and Evaluation of Multiple Imputation Strategies for the Statistical Analysis of Incomplete Data Sets. Ph.D. thesis, Erasmus University, Rotterdam.
+# Bodner, Todd E. (2008) “What improves with increased missing data imputations?” Structural Equation Modeling: A Multidisciplinary Journal 15: 651-675.
+# Moons, KG, Donders, RA, Stijnen, T, & Harrell, FE, Jr. (2006). Using the outcome for imputation of missing predictor values was preferred. Journal of Clinical Epidemiology, 59, 1092–1101.
+# Royston, P, & White, IR. (2011). Multiple imputation by chained equations (MICE): implementation in Stata. Journal of Statistical Software, 45(4), 1–20.
+# White, IR, Royston, P, & Wood, AM. (2011). Multiple imputation using chained equations: Issues and guidance for practice. Statistics in Medicine, 30, 377–399
+# Graham, JW, Olchowski, AE, & Gilreath, TD. (2007). How many imputations are really needed? Some practical clarifications of multiple imputation theory. Prevention Science, 8, 206–213.
+# Van Buuren, S, Boshuizen, HC, & Knook, DL. (1999). Multiple imputation of missing blood pressure covariates in survival analysis. Statistics in Medicine, 18, 681–694.
+# van Buuren S, Brand JPL, Groothuis-Oudshoorn CGM, Rubin DB (2006b). “Fully Conditional Specification in Multivariate Imputation.” Journal of Statistical Computation and Simulation, 76(12), 1049–1064.
+# Van Buuren, S. 2018. Flexible Imputation of Missing Data. Second Edition. Boca Raton, FL: Chapman & Hall/CRC.
+                                           
+>>>>>>> upstream/working

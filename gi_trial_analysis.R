@@ -884,46 +884,67 @@ colnames(table3) <- c(
 
 
 # input: A dataframe, with one column that is year_trial, which represents the year of the trial. The other columns
-# are completely arbitrary, but should be considered covering an entire category, and must be true/false
+# are completely arbitrary, but should be considered covering an entire category, and must be true/false, unless the
+# non_boolean_column_name is set.
+# 
 do_time_series_analysis <- function(classification, input, num_comparisons, non_boolean_column_name = NA, year_limits = c(2008, 2017)) {
 	if (length(which(is.na(input$year_trial))) > 0) {
 		stop("Can't have NAs in the year column")
 	}
 
+  df <- input
 	if (!is.na(non_boolean_column_name)) {
-    df <- input %>% 
+    df <- df %>% 
+      # Add a column "col" that is an exact copy of the column non_boolean_column_name
+      # The double-exclam means R is converting the string value held in non_boolean_column to
+      # a reference to the actual column with that name in the table `input`
       mutate(col = !! rlang::sym(non_boolean_column_name)) %>%
+      # Only select the year_trial and previously made `col` columns
       select(year_trial, col)
     
-		for (colname in unique(na.omit(df$col))) {
-			df <- df %>% mutate(!! rlang::sym(as.character(colname)) := 
-				ifelse(is.na(col), NA, 
-					ifelse(as.character(col) == colname, TRUE, FALSE))
-				)
+    # Loop through all unique, non-NA values in the `col` column. For each of these unique
+    # values, we will create a new boolean column in the dataframe, representing whether or
+    # not the value in `col` is equal to it. If it is NA, the value remains NA. e.g.:
+    # YEAR_TRIAL		col		 Other  	NIH  	Industry
+    # 2009			    Other	 TRUE		  FALSE	FALSE
+    # 2010			    NIH		 FALSE		TRUE	FALSE
+    # 2011  			  NA	 	 NA			  NA		NA
+    unique_values_in_col <- unique(na.omit(df$col))
+		for (val in unique_values_in_col) {
+			df <- df %>% 
+        mutate(!! rlang::sym(as.character(val)) := 
+          ifelse(is.na(col), NA, 
+            ifelse(as.character(col) == val, TRUE, FALSE))
+          )
 		}
 
+    # Deletes the `col` column, as it's no longer needed
 		df <- df %>% select(-col)
-	} else {
-    df <- input
-  }
+	}
 
 	# Remove all rows where all non-year columns are NA
-	remove_nas <- df[rowSums(is.na(df)) < ncol(df) - 1, ]
+	df <- df[rowSums(is.na(df)) < ncol(df) - 1, ]
 
 	# Only include years in the target date range
-	remove_nas <- remove_nas %>% 
+	df <- df %>% 
 		filter(year_trial >= year_limits[1] & year_trial <= year_limits[2])
 
 	# Calculate frequencies for each year and column
-	freqs <- remove_nas %>%
-    mutate(total = rowSums(is.na(.)) < ncol(freqs) - 1) %>%
+	freqs <- df %>%
+    # Set a new column all to true, as we will sum this in a couple lines, resulting in
+    # all rows being counted
+    mutate(total = TRUE) %>%
 		group_by(year_trial) %>%
+    # After being grouped by year, counts up the number of TRUEs in each column
 		summarise_all(.funs = list( ~sum(., na.rm = TRUE)))
 
 	# Calculate percentages for each frequency, out of the total number of trials
   percentages <- freqs %>%
+    # Mutate all columns except year_trial and total, and perform the function `~. / total` on each cell,
+    # effectively dividing the number in each column's cell by the total -- i.e., a %
     mutate_at(vars(-one_of('year_trial', 'total')), .funs = list( ~. / total)) %>%
     select(-total) %>%
+    # Rename all columns except year_trial the same name but suffixed with _pct
     rename_at(vars(-one_of('year_trial')),
       function(i) paste0(i, '_pct'))
 
@@ -931,6 +952,9 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
 	combined <- merge(freqs, percentages, by = "year_trial")
   combined <- combined %>% select(-total)
 
+  # Average annual growth rate, taken from Brandon's code
+  # Compute the year-over-year growth % for each sub-category, then take the average of all of
+  # those over the observed years
 	aagr <- combined %>%
 	    mutate_at(vars(-year_trial), 
 	              function(x) (x - lag(x))/lag(x)) %>%
@@ -938,27 +962,36 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
 	                 function(x) mean(x, na.rm = TRUE)) %>%
 	    t()
 
+  # Compound growth rate, taken from Brandon's code
+  # Just computes normal compound growth rate, i.e., ((finish / start) ^ (1 / num_years)) - 1
 	cagr <- combined %>%
 		summarise_at(vars(-year_trial),
 		             function(x) ((last(x)/first(x))^ (1/(length(x) - 1))) - 1) %>%
 		t()
 
+  # Computes Kendall-Mann p-values for each time series
 	kendall_mann <- combined %>%
 		summarise_at(vars(-year_trial), 
 		             function(x) Kendall::MannKendall(x)$sl) %>%
 		t()
 
+  # Corrects for multiple comparisons problem
 	bonferroni_kendall <- combined %>%
 		summarise_at(vars(-year_trial), 
 		             function(x) ((num_comparisons - 1)/2) * Kendall::MannKendall(x)$sl) %>% 
 		Reduce(f = cbind) %>%
 		t()
 
+  # ordinary least squares
 	ols <- combined %>%
 		summarise_at(vars(-year_trial), 
 		             function(x) summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
 		t()
 
+  # To visualize linear model, run:
+  # ggplot(data = combined %>% select(year_trial, Other_pct), aes(x = year_trial, y = Other_pct)) + geom_point(color = 'blue') + geom_smooth(method = "lm", color = 'red', se = TRUE)
+
+  # correcting Multiple comparisons problem, same as in Kendall-Mann 
 	bonferroni_ols <- combined %>%
 		summarise_at(vars(-year_trial), 
 		             function(x) ((num_comparisons - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
@@ -975,21 +1008,26 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
 	    tibble::rownames_to_column('trialvar') %>%
 	    tbl_df()
 
-  # growth_statistics$cochrane_armitage_p <- NA
+  # Run Cochrane-Armitage
   for (name in colnames(freqs %>% select(-year_trial, -total))) {
+    # For each column, create a contingency table of all the values that (1) are equal to it
+    # and (2) all the ones that aren't
     contingency <- freqs %>% 
       mutate(not = total - !!rlang::sym(name)) %>%
       select(!!rlang::sym(name), not)
     cat <- CochranArmitageTest(contingency)
+
+    # Add p-val to growth_statistics data frame for the variable of interest
     growth_statistics$cochrane_armitage[growth_statistics$trialvar == name] <- cat$p.value
   }
 
+  # Prefix all the variables in the table with a "classification" for easier sorting
   growth_statistics <- growth_statistics %>% 
     mutate(trialvar = paste0(classification, "-", trialvar))
 	return(growth_statistics)
 }
 
-num_comparisons <- 100
+num_comparisons <- 50
 ts_table <- rbind(
   do_time_series_analysis("total", full_gi %>% select(year_trial) %>% mutate(dummy = TRUE), num_comparisons),
   do_time_series_analysis("industry", full_gi, num_comparisons, "industry_any3"),
@@ -1002,6 +1040,7 @@ ts_table <- rbind(
   do_time_series_analysis("enrollment_type", full_gi, num_comparisons, "enrollment_type"),
   do_time_series_analysis("reported", full_gi, num_comparisons, "were_results_reported"),
   do_time_series_analysis("infection_any", full_gi, num_comparisons, "infection_any"),
+  do_time_series_analysis("br_gni_lmic_hic_only", full_gi, num_comparisons, "br_gni_lmic_hic_only"),
   do_time_series_analysis("disease", full_gi %>% select(
     year_trial, 
     infection_helminth,

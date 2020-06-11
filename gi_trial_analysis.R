@@ -608,7 +608,8 @@ for (i in marginal_indexes) {
   }
   return(output_matrix)
 }
-
+							       
+#Adding in Rows 			      
 do_table_analysis <- function(already_mutated, cols, include_disease) {
   
   #Primary Purpose                   
@@ -669,6 +670,49 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
   reported <- get_freqs("Were Results Reported", already_mutated %>% mutate(var = 
     ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))), cols)
 
+         #Study Status
+          study_status <- get_freqs("Study Status", already_mutated %>% mutate(var = br_studystatus), cols)
+
+          #LMIC vs HMIC
+           hmic_vs_lmic <- get_freqs("Location", already_mutated %>% mutate(var = br_gni_lmic_hic_only), cols)
+
+
+      #TYPE OF INTERVENTION
+        all_interventions <- rbind(
+              #DRUG INTERVENTION
+              get_freqs("Drug Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_drug) & interv_drug, "Yes", ifelse(!is.na(interv_drug), "No", NA))), cols),
+              #OTHER INTERVENTION
+              get_freqs("Other Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_other) & interv_other, "Yes", ifelse(!is.na(interv_other), "No", NA))), cols),
+              #DEVICE INTERVENTION
+              get_freqs("Device Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_device) & interv_device, "Yes", ifelse(!is.na(interv_device), "No", NA))), cols),
+              #PROCEDURE INTERVENTION
+              get_freqs("Procedure Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_procedure) & interv_procedure, "Yes", ifelse(!is.na(interv_procedure), "No", NA))), cols),
+              #BEHAVIORAL INTERVENTION
+              get_freqs("Behavioral Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_behavioral) & interv_behavioral, "Yes", ifelse(!is.na(interv_behavioral), "No", NA))), cols),
+              #BIOLOGICAL INTERVENTION
+              get_freqs("Biological Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_biological) & interv_biological, "Yes", ifelse(!is.na(interv_biological), "No", NA))), cols),
+              #DIETARY INTERVENTION
+              get_freqs("Dietary Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_dietary) & interv_dietary, "Yes", ifelse(!is.na(interv_dietary), "No", NA))), cols),
+              #RADIATION INTERVENTION
+              get_freqs("Radiation Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_radiation) & interv_radiation, "Yes", ifelse(!is.na(interv_radiation), "No", NA))), cols),
+              #DIAGNOSTIC INTERVENTION
+              get_freqs("Diagnostic Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_diagnostic) & interv_diagnostic, "Yes", ifelse(!is.na(interv_diagnostic), "No", NA))), cols),
+              #GENETIC INTERVENTION
+              get_freqs("Genetic Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_genetic) & interv_genetic, "Yes", ifelse(!is.na(interv_genetic), "No", NA))), cols),
+              #COMBINATION INTERVENTION
+              get_freqs("Combination Intervention", already_mutated %>% mutate(var = 
+                ifelse(!is.na(interv_combination) & interv_combination, "Yes", ifelse(!is.na(interv_combination), "No", NA))), cols))
+              
 
   #INFECTIONS ANY
   all_diseases <- rbind(
@@ -790,11 +834,13 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
   #NOT SPECIFIED 
     get_freqs("Not Specified", already_mutated %>% mutate(var = 
       ifelse(!is.na(location_notspecified) & location_notspecified, "Yes", ifelse(!is.na(location_notspecified), "No", NA))), cols))
+
 if(include_disease){
   output <- rbind(
     all_diseases,
     pp, 
     phase, 
+      all_interventions,
     study_arms, 
     masking, 
     enrollment, 
@@ -804,12 +850,16 @@ if(include_disease){
     regions, 
     num_regions, 
     num_facilities, 
-    sponsor, 
+    sponsor,
+      study_status,
+      hmic_vs_lmic, 
     reported)
   } else {
     output <- rbind(
+      all_interventions,
     pp, 
     phase, 
+      all_interventions,
     study_arms, 
     masking, 
     enrollment, 
@@ -820,10 +870,13 @@ if(include_disease){
     num_regions, 
     num_facilities, 
     sponsor, 
+      study_status,
+      hmic_vs_lmic, 
     reported)
   }
   return(output)
 }
+
 
 #------TABLE 1 SIMILAR TO OPHTHO TRIAL------# 
 #-----STRATIFIED BY YEAR USING BIN--------#                    

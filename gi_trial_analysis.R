@@ -631,10 +631,10 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
 
   #Number of enrollees
   enrollment <- get_freqs("Enrollment Number", already_mutated %>% mutate (var = 
-    ifelse(!is.na(enrollment) & enrollment >= 1000, "Greater than or equal to 1000", 
-    ifelse(!is.na(enrollment) & enrollment >=500 & enrollment <1000, "Between 500 and 1000", 
-    ifelse(!is.na(enrollment) & enrollment >100 & enrollment <500, "Between 100 and 500", 
-    ifelse(!is.na(enrollment) & enrollment <= 1, "Less than or Equal to 100", NA))))), cols)
+    ifelse(!is.na(enrollment) & enrollment > 1000, "> 1000", 
+    ifelse(!is.na(enrollment) & enrollment >=500 & enrollment <=1000, "500 – 1000", 
+    ifelse(!is.na(enrollment) & enrollment >=100 & enrollment <500, "100 – 499", 
+    ifelse(!is.na(enrollment) & enrollment < 100, "< 100", NA))))), cols)
   
   #Had Data Monitoring Committe, code is slightly different because this is a boolean column (True/False)
   has_dmc <- get_freqs("Had Data Monitoring Committee", already_mutated %>% mutate(var = 

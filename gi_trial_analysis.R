@@ -521,10 +521,10 @@ full_gi <- subset(full_gi_df, select = cols_to_add)
 # FREQUENCY TABLES and CHI-SQUARE ANALYSIS					       
 							       
 ####################################	
-							       
+                     
 # create function get_freqs for p-values and frequency tables
 # main_cat = variable we are looking at (i.e primary purpose)
-# df = full_gi in this case but columns (i.e. "region") each time it's passed in
+# df = full_gi_df in this case but columns (i.e. "region") each time it's passed in
 # col_comparison = different variable we want ot compare on (in table 1 it's time bin, in table2 it's industry)
 # treat_as_csv = FALSE means that we are going to treat the row as if it's a list of variables like in a CSV. 
 # If you call the get_freqs function without specifying, the default is FALSE meaning it won't treat it as a CSV
@@ -827,7 +827,7 @@ if(include_disease){
 
 #------TABLE 1 SIMILAR TO OPHTHO TRIAL------# 
 #-----STRATIFIED BY YEAR USING BIN--------#                    
-table1 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = bintime), c("2007_2012", "2013_2018"), FALSE)) 
+table1 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = bintime), c("2007_2012", "2013_2018"), FALSE)) 
 colnames(table1) <- c(
   "Trial Characteristic", 
   "Value", 
@@ -845,7 +845,7 @@ colnames(table1) <- c(
 
 #------TABLE 2 SIMILAR TO OPHTHO TRIAL------# 
 #-----STRATIFIED BY SPONSORSHIP--------#                    
-table2 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = industry_any2b), c("Industry", "US.Govt", "Other"), TRUE))
+table2 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = industry_any2b), c("Industry", "US.Govt", "Other"), TRUE))
 colnames(table2) <- c(
   "Trial Characteristic", 
   "Value", 
@@ -865,7 +865,7 @@ colnames(table2) <- c(
   "p-value for trial characteristic")
 
 #-------UNIVARIATE ANALYSIS--------#        
-table3 <- as.data.frame(do_table_analysis(full_gi %>% mutate(col = early_discontinuation), c(TRUE, FALSE), TRUE))
+table3 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = early_discontinuation), c(TRUE, FALSE), TRUE))
 colnames(table3) <- c(
   "Trial Characteristic", 
   "Value", 
@@ -885,7 +885,7 @@ colnames(table3) <- c(
 ######################
 
 # MANN-KENDALL AND TIME-SERIES ANALYSIS
-# COCHRANE ARMITAGE						       
+# COCHRANE ARMITAGE                  
 
 ######################
 
@@ -896,12 +896,12 @@ colnames(table3) <- c(
 # non_boolean_column_name is set.
 # 
 do_time_series_analysis <- function(classification, input, num_comparisons, non_boolean_column_name = NA, year_limits = c(2008, 2017)) {
-	if (length(which(is.na(input$year_trial))) > 0) {
-		stop("Can't have NAs in the year column")
-	}
+  if (length(which(is.na(input$year_trial))) > 0) {
+    stop("Can't have NAs in the year column")
+  }
 
   df <- input
-	if (!is.na(non_boolean_column_name)) {
+  if (!is.na(non_boolean_column_name)) {
     df <- df %>% 
       # Add a column "col" that is an exact copy of the column non_boolean_column_name
       # The double-exclam means R is converting the string value held in non_boolean_column to
@@ -913,40 +913,40 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
     # Loop through all unique, non-NA values in the `col` column. For each of these unique
     # values, we will create a new boolean column in the dataframe, representing whether or
     # not the value in `col` is equal to it. If it is NA, the value remains NA. e.g.:
-    # YEAR_TRIAL		col		 Other  	NIH  	Industry
-    # 2009			    Other	 TRUE		  FALSE	FALSE
-    # 2010			    NIH		 FALSE		TRUE	FALSE
-    # 2011  			  NA	 	 NA			  NA		NA
+    # YEAR_TRIAL    col    Other    NIH   Industry
+    # 2009          Other  TRUE     FALSE FALSE
+    # 2010          NIH    FALSE    TRUE  FALSE
+    # 2011          NA     NA       NA    NA
     unique_values_in_col <- unique(na.omit(df$col))
-		for (val in unique_values_in_col) {
-			df <- df %>% 
+    for (val in unique_values_in_col) {
+      df <- df %>% 
         mutate(!! rlang::sym(as.character(val)) := 
           ifelse(is.na(col), NA, 
             ifelse(as.character(col) == val, TRUE, FALSE))
           )
-		}
+    }
 
     # Deletes the `col` column, as it's no longer needed
-		df <- df %>% select(-col)
-	}
+    df <- df %>% select(-col)
+  }
 
-	# Remove all rows where all non-year columns are NA
-	df <- df[rowSums(is.na(df)) < ncol(df) - 1, ]
+  # Remove all rows where all non-year columns are NA
+  df <- df[rowSums(is.na(df)) < ncol(df) - 1, ]
 
-	# Only include years in the target date range
-	df <- df %>% 
-		filter(year_trial >= year_limits[1] & year_trial <= year_limits[2])
+  # Only include years in the target date range
+  df <- df %>% 
+    filter(year_trial >= year_limits[1] & year_trial <= year_limits[2])
 
-	# Calculate frequencies for each year and column
-	freqs <- df %>%
+  # Calculate frequencies for each year and column
+  freqs <- df %>%
     # Set a new column all to true, as we will sum this in a couple lines, resulting in
     # all rows being counted
     mutate(total = TRUE) %>%
-		group_by(year_trial) %>%
+    group_by(year_trial) %>%
     # After being grouped by year, counts up the number of TRUEs in each column
-		summarise_all(.funs = list( ~sum(., na.rm = TRUE)))
+    summarise_all(.funs = list( ~sum(., na.rm = TRUE)))
 
-	# Calculate percentages for each frequency, out of the total number of trials
+  # Calculate percentages for each frequency, out of the total number of trials
   percentages <- freqs %>%
     # Mutate all columns except year_trial and total, and perform the function `~. / total` on each cell,
     # effectively dividing the number in each column's cell by the total -- i.e., a %
@@ -956,65 +956,65 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
     rename_at(vars(-one_of('year_trial')),
       function(i) paste0(i, '_pct'))
 
-	# Merge the tables into one table that has both frequencies and percentages
-	combined <- merge(freqs, percentages, by = "year_trial")
+  # Merge the tables into one table that has both frequencies and percentages
+  combined <- merge(freqs, percentages, by = "year_trial")
   combined <- combined %>% select(-total)
 
   # Average annual growth rate, taken from Brandon's code
   # Compute the year-over-year growth % for each sub-category, then take the average of all of
   # those over the observed years
-	aagr <- combined %>%
-	    mutate_at(vars(-year_trial), 
-	              function(x) (x - lag(x))/lag(x)) %>%
-	    summarise_at(vars(-year_trial), 
-	                 function(x) mean(x, na.rm = TRUE)) %>%
-	    t()
+  aagr <- combined %>%
+      mutate_at(vars(-year_trial), 
+                function(x) (x - lag(x))/lag(x)) %>%
+      summarise_at(vars(-year_trial), 
+                   function(x) mean(x, na.rm = TRUE)) %>%
+      t()
 
   # Compound growth rate, taken from Brandon's code
   # Just computes normal compound growth rate, i.e., ((finish / start) ^ (1 / num_years)) - 1
-	cagr <- combined %>%
-		summarise_at(vars(-year_trial),
-		             function(x) ((last(x)/first(x))^ (1/(length(x) - 1))) - 1) %>%
-		t()
+  cagr <- combined %>%
+    summarise_at(vars(-year_trial),
+                 function(x) ((last(x)/first(x))^ (1/(length(x) - 1))) - 1) %>%
+    t()
 
   # Computes Kendall-Mann p-values for each time series
-	kendall_mann <- combined %>%
-		summarise_at(vars(-year_trial), 
-		             function(x) Kendall::MannKendall(x)$sl) %>%
-		t()
+  kendall_mann <- combined %>%
+    summarise_at(vars(-year_trial), 
+                 function(x) Kendall::MannKendall(x)$sl) %>%
+    t()
 
   # Corrects for multiple comparisons problem
-	bonferroni_kendall <- combined %>%
-		summarise_at(vars(-year_trial), 
-		             function(x) ((num_comparisons - 1)/2) * Kendall::MannKendall(x)$sl) %>% 
-		Reduce(f = cbind) %>%
-		t()
+  bonferroni_kendall <- combined %>%
+    summarise_at(vars(-year_trial), 
+                 function(x) ((num_comparisons - 1)/2) * Kendall::MannKendall(x)$sl) %>% 
+    Reduce(f = cbind) %>%
+    t()
 
   # ordinary least squares
-	ols <- combined %>%
-		summarise_at(vars(-year_trial), 
-		             function(x) summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
-		t()
+  ols <- combined %>%
+    summarise_at(vars(-year_trial), 
+                 function(x) summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
+    t()
 
   # To visualize linear model, run:
   # ggplot(data = combined %>% select(year_trial, Other_pct), aes(x = year_trial, y = Other_pct)) + geom_point(color = 'blue') + geom_smooth(method = "lm", color = 'red', se = TRUE)
 
   # correcting Multiple comparisons problem, same as in Kendall-Mann 
-	bonferroni_ols <- combined %>%
-		summarise_at(vars(-year_trial), 
-		             function(x) ((num_comparisons - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
-		t()
+  bonferroni_ols <- combined %>%
+    summarise_at(vars(-year_trial), 
+                 function(x) ((num_comparisons - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
+    t()
 
-	growth_statistics <- 
-	    cbind.data.frame(aagr = aagr,
-	                     cagr = cagr,
-	                     kendall_pval = kendall_mann,
-	                     kendall_pval_bonferroni = bonferroni_kendall,
-	                     ols_pval = ols,
-	                     ols_pval_bonferroni = bonferroni_ols,
+  growth_statistics <- 
+      cbind.data.frame(aagr = aagr,
+                       cagr = cagr,
+                       kendall_pval = kendall_mann,
+                       kendall_pval_bonferroni = bonferroni_kendall,
+                       ols_pval = ols,
+                       ols_pval_bonferroni = bonferroni_ols,
                        cochrane_armitage = NA) %>%
-	    tibble::rownames_to_column('trialvar') %>%
-	    tbl_df()
+      tibble::rownames_to_column('trialvar') %>%
+      tbl_df()
 
   # Run Cochrane-Armitage
   for (name in colnames(freqs %>% select(-year_trial, -total))) {
@@ -1032,24 +1032,24 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
   # Prefix all the variables in the table with a "classification" for easier sorting
   growth_statistics <- growth_statistics %>% 
     mutate(trialvar = paste0(classification, "-", trialvar))
-	return(growth_statistics)
+  return(growth_statistics)
 }
 
 num_comparisons <- 40
 ts_table <- rbind(
-  do_time_series_analysis("total", full_gi %>% select(year_trial) %>% mutate(dummy = TRUE), num_comparisons),
-  do_time_series_analysis("industry", full_gi, num_comparisons, "industry_any2b"),
-  do_time_series_analysis("region", full_gi %>% select(year_trial, NorthAmerica, Europe, EastAsia, neither3regions), num_comparisons),
-  do_time_series_analysis("gci_huc", full_gi, num_comparisons, "br_gni_hic"),
-  do_time_series_analysis("early_discontinuation", full_gi, num_comparisons, "early_discontinuation"),
-  do_time_series_analysis("randomization", full_gi, num_comparisons, "br_allocation"),
-  do_time_series_analysis("masking", full_gi, num_comparisons, "br_masking2"),
-  do_time_series_analysis("DMC", full_gi, num_comparisons, "has_dmc"),
-  do_time_series_analysis("enrollment_type", full_gi, num_comparisons, "enrollment_type"),
-  do_time_series_analysis("reported", full_gi, num_comparisons, "were_results_reported"),
-  do_time_series_analysis("infection_any", full_gi, num_comparisons, "infection_any"),
-  do_time_series_analysis("br_gni_lmic_hic_only", full_gi, num_comparisons, "br_gni_lmic_hic_only"),
-  do_time_series_analysis("disease", full_gi %>% select(
+  do_time_series_analysis("total", full_gi_df %>% select(year_trial) %>% mutate(dummy = TRUE), num_comparisons),
+  do_time_series_analysis("industry", full_gi_df, num_comparisons, "industry_any2b"),
+  do_time_series_analysis("region", full_gi_df %>% select(year_trial, NorthAmerica, Europe, EastAsia, neither3regions), num_comparisons),
+  do_time_series_analysis("gci_huc", full_gi_df, num_comparisons, "br_gni_hic"),
+  do_time_series_analysis("early_discontinuation", full_gi_df, num_comparisons, "early_discontinuation"),
+  do_time_series_analysis("randomization", full_gi_df, num_comparisons, "br_allocation"),
+  do_time_series_analysis("masking", full_gi_df, num_comparisons, "br_masking2"),
+  do_time_series_analysis("DMC", full_gi_df, num_comparisons, "has_dmc"),
+  do_time_series_analysis("enrollment_type", full_gi_df, num_comparisons, "enrollment_type"),
+  do_time_series_analysis("reported", full_gi_df, num_comparisons, "were_results_reported"),
+  do_time_series_analysis("infection_any", full_gi_df, num_comparisons, "infection_any"),
+  do_time_series_analysis("br_gni_lmic_hic_only", full_gi_df, num_comparisons, "br_gni_lmic_hic_only"),
+  do_time_series_analysis("disease", full_gi_df %>% select(
     year_trial, 
     infection_helminth,
     infection_intestines,
@@ -1078,7 +1078,7 @@ ts_table <- rbind(
     transplant,
     ulcerative_disease,
     other), num_comparisons),
-  do_time_series_analysis("disease_location", full_gi %>% select(
+  do_time_series_analysis("disease_location", full_gi_df %>% select(
     year_trial,
     location_esophagus,
     location_stomach,
@@ -1097,17 +1097,17 @@ ts_table <- rbind(
 
 
 #######################################
-			     
+           
 #MULTIPLE IMPUTATION
-			     
+           
 #######################################
-	     
+       
 library(dplyr)
 library(mice)
 library(tidyverse)
 
 # Set factor variables
-micedata <- full_gi %>%
+micedata <- full_gi_df %>%
     mutate(
         early_discontinuation = as.factor(early_discontinuation),
         industry_any2b = as.factor(industry_any2b),
@@ -1164,22 +1164,22 @@ micedata <- full_gi %>%
     )
 
 # set date variables by converting them into numbers "days since 1970", need to convert back out after we have imputed
-micedata <- full_gi %>%
+micedata <- full_gi_df %>%
     mutate(
         completion_date = as.numeric(as.Date(completion_date) - as.Date("1970-01-01"))
     )
 
 # Relevel to reference groups, picked reference group based on which group had the most, 
 # relevel can only be done for unordered factors, commented out ordered variables
-#full_gi$industry_any2b <- relevel(full_gi$industry_any2b, ref = "Other")
-full_gi$br_phase4_ref_ph3 <- relevel(full_gi$br_phase4_ref_ph3, ref = "Phase 1/2-2")
-full_gi$new_primary_purpose_treatment <- relevel(full_gi$new_primary_purpose_treatment, ref = "Treatment")
-#full_gi$interv_all_intervention_types <- relevel(full_gi$interv_all_intervention_types, ref = "Biological") #----this one has multiple categories in each separated by ;
-#full_gi$br_allocation <- relevel(full_gi$br_allocation, ref = "Randomized")
-full_gi$br_masking2 <- relevel(full_gi$br_masking2, ref = "None")
-#full_gi$br_gni_lmic_hic_only <- relevel(full_gi$br_gni_lmic_hic_only, ref = "HIC Only")
-#full_gi$enrollment_type <- relevel(full_gi$enrollment_type, ref = "Actual")
-#full_gi$overall_status <- relevel(full_gi$overall_status, ref = "Completed")
+#full_gi_df$industry_any2b <- relevel(full_gi_df$industry_any2b, ref = "Other")
+full_gi_df$br_phase4_ref_ph3 <- relevel(full_gi_df$br_phase4_ref_ph3, ref = "Phase 1/2-2")
+full_gi_df$new_primary_purpose_treatment <- relevel(full_gi_df$new_primary_purpose_treatment, ref = "Treatment")
+#full_gi_df$interv_all_intervention_types <- relevel(full_gi_df$interv_all_intervention_types, ref = "Biological") #----this one has multiple categories in each separated by ;
+#full_gi_df$br_allocation <- relevel(full_gi_df$br_allocation, ref = "Randomized")
+full_gi_df$br_masking2 <- relevel(full_gi_df$br_masking2, ref = "None")
+#full_gi_df$br_gni_lmic_hic_only <- relevel(full_gi_df$br_gni_lmic_hic_only, ref = "HIC Only")
+#full_gi_df$enrollment_type <- relevel(full_gi_df$enrollment_type, ref = "Actual")
+#full_gi_df$overall_status <- relevel(full_gi_df$overall_status, ref = "Completed")
 
 # Set random seed
 random_seed_num <- 3249
@@ -1348,7 +1348,7 @@ predictor_vars <- c(
 # imputation model should include all variables of the analysis, plus those 
 # highly correlated with responses or explanatory variables". For this reason,
 # we've included all variables
-	
+  
 for (predictor_var in predictor_vars) {
     predM[predictor_var, predictor_vars] <- 1
     predM[predictor_var, predictor_var] <- 0
@@ -1386,7 +1386,7 @@ imputed <- mice(
 # van Buuren S, Brand JPL, Groothuis-Oudshoorn CGM, Rubin DB (2006b). “Fully Conditional Specification in Multivariate Imputation.” Journal of Statistical Computation and Simulation, 76(12), 1049–1064.
 # Van Buuren, S. 2018. Flexible Imputation of Missing Data. Second Edition. Boca Raton, FL: Chapman & Hall/CRC.
 
-			    
+          
 ############################
 #LOGISTIC REGRESSION
 
@@ -1407,12 +1407,11 @@ get_data <- function(pooled, term) {
     return(c(NA,NA,NA))
 }
 
-#multivariate, can add in whatever varieables			     
+#multivariate, can add in whatever varieables          
 multivar <- pool(with(
     imputed, 
     glm(early_discontinuation ~ early_discontinuation + industry_any2b + 
       br_phase4_ref_ph3 + enrollment +new_enroll + bintime + new_primary_purpose_treatment + 
       num_facilities + num_regions + br_allocation + br_masking2, family = binomial(link=logit))
     ))
-	    
-			     
+      

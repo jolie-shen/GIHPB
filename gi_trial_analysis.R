@@ -387,6 +387,7 @@ full_gi_df <- full_gi_df %>% mutate(year_trial = year(study_first_submitted_date
 ######creating a list of all the columns in full_gi I think might be useful in the analysis and called it cols_to_add
 cols_to_add <- c(
   "nct_id", #------ID
+  "br_censor_earlydiscontinuation",
 
   "early_discontinuation", #------PRIMARY OUTCOME OF EARLY DISCONTINUATION
   #“Early discontinuation” was defined as a trial stopped early with the status “Terminated,” or “Suspended.” 
@@ -1104,6 +1105,7 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
   return(growth_statistics)
 }
 
+# Do we want to do these with multiple imputation?
 num_comparisons <- 40
 ts_table <- rbind(
   do_time_series_analysis("total", full_gi_df %>% select(year_trial) %>% mutate(dummy = TRUE), num_comparisons),
@@ -1509,3 +1511,232 @@ multivar <- pool(with(
       num_facilities + num_regions + br_allocation + br_masking2, family = binomial(link=logit))
     ))
       
+
+# Create Kaplan-Meier curves and associated tables
+save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
+  if (is.na(file_name)) {
+    file_name <- paste0(var, ".png")
+  }
+  filtered <- data %>% filter(br_trialduration >= 0)
+  fmla <- paste0("Surv(br_trialduration, br_censor_earlydiscontinuation) ~ ", var)
+  surv_fit <- survfit(as.formula(fmla), data = filtered)
+  plot <- ggsurvplot(surv_fit, 
+            fun = 'event',
+            data = filtered,
+            xlim = c(0,60), 
+            ylab = 'Cumulative incidence of\nearly discontinuation',
+            size = 1.5, 
+            censor.shape = 124,
+            censor.size = 2.0,
+            risk.table = TRUE,
+            pval = TRUE,
+            pval.size = 10,
+            break.x.by = 12) +
+    xlab("Trial Duration (Months)")
+    png(paste0(file_path, file_name), width = 1500, height = 1000)
+    print(plot)
+    dev.off()
+}
+
+save_kaplain_meier(full_gi_df, "industry_any3", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "phase", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "has_dmc", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "br_masking2", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "new_enroll", "~/Desktop/km_curves/")
+
+# Need to coalesce full_gi_df and full_gi
+
+# Cox regression with all variables
+cox_formula <- Surv(br_trialduration, br_censor_earlydiscontinuation) ~ 
+	industry_any3 + 
+	primary_purpose + 
+	phase + 			# Need to redo this
+	new_arms +
+	new_enroll +
+	br_masking2 +
+	br_allocation +
+	has_dmc +
+	br_gni_lmic_hic_only +
+	interv_behavioral +
+	interv_biological +
+	interv_combination +
+	interv_device +
+	interv_diagnostic +
+	interv_dietary +
+	interv_drug +
+	interv_genetic +
+	interv_other +
+	interv_procedure +
+	interv_radiation +
+  location_esophagus +
+  location_stomach +
+  location_small_intestine +
+  location_colon_rectum +
+  location_anus +
+  location_liver +
+  location_biliarytract +
+  location_gallbladder +
+  location_pancreas +
+  location_peritoneum +
+  location_notspecified +
+  neoplasia_disease +
+  abdominal_hernia +
+  appendicitis +
+  cirrhosis +
+  diverticular_disease +
+  fecal_diversion +
+  foreign_body +
+  functional_disorder +
+  gallstones +
+  gerd +
+  hemorrhoids +
+  hypoxic +
+  ileus +
+  ibd +
+  malabsorptive +
+  motility +
+  nafld_nash +
+  nonspecific +
+  pancreatitis +
+  transplant +
+  ulcerative_disease +
+  other +
+	num_facilities
+
+cox_model <- coxph(cox_formula, data = full_gi_df)
+cox_fit <- with(imputed, cox_model)
+pool_fit_imp1 <-  pool(cox_fit)
+
+summary_table <- 
+        summary(pool_fit_imp1, conf.int = TRUE, exponentiate = TRUE, conf.level = 0.95)
+
+coef_table <- 
+    summary_table %>%
+    tibble::rownames_to_column('coxlevels') %>%
+    select(coxlevels, name = term, Estimate = estimate, `Std. Error` = std.error, `z value` = statistic, `Pr(>|z|)` = p.value)
+
+# select the two columns that correspond to the upper and lower confidence estimates
+conf_table <- 
+    summary_table[, c((ncol(summary_table) - 1), ncol(summary_table))]
+
+colnames(conf_table) <- c('cox_HR_conf_low','cox_HR_conf_high')
+
+conf_table <- 
+    conf_table %>%
+    tibble::rownames_to_column('coxlevels') 
+
+stats_table <- 
+    left_join(conf_table, # this should go first or else you lose the rows that are NAs
+              coef_table, 
+              by = 'coxlevels') %>%
+    mutate(coxHR = Estimate, # I don't need to exponentiate in this version because I've already exponentiated in the summary_table
+            coxpvals = `Pr(>|z|)`)
+
+# format everything so the strings look nice
+coef_full_table <- 
+    stats_table %>% 
+    mutate(FMT_HR = bvec_format_num(coxHR, cap=100) %>% {sprintf(paste0('%', max(nchar(.), na.rm=T), 's'), .)},
+            FMT_PVAL = formatC(coxpvals, digits = 2, format = 'e') %>% {sprintf(paste0('%', max(nchar(.), na.rm=T), 's'), .)},
+            FMT_up = bvec_format_num(cox_HR_conf_high, cap=100) %>% {sprintf(paste0('%',max(nchar(.), na.rm=T),'s'), .)},
+            FMT_low = bvec_format_num(cox_HR_conf_low, cap=100),
+            FMT_conf = paste0('(',FMT_low,' - ',FMT_up,')') %>% {sprintf(paste0('%',max(nchar(.), na.rm=T),'s'),.)},
+            HR_full_p = paste0(FMT_HR, ' ', FMT_conf, '; p<',FMT_PVAL),
+            HR_full = paste0(FMT_HR, ' ', FMT_conf)) %>%
+    mutate(FMT_PVAL = case_when(
+                coxpvals < 0.0001 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "***"),
+                coxpvals < 0.001 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "***"),
+                coxpvals < 0.01 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "**"),
+                coxpvals < 0.05 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "*"),
+                TRUE ~ as.character(format(round(coxpvals, 3), nsmall = 3))
+            )) %>%
+    select(name, FMT_HR, FMT_conf, FMT_PVAL)
+
+
+
+
+
+
+
+# Returns columns for lasso selection
+# Note that we just return columns with >0 coefficients, to be included in the main
+# Cox model. Since the concept of SE is not perfectly defined for LASSO coefficients, it
+# doesn't really make sense to try to pool coefficients by Rubin's rules. We use this only
+# for feature selection, and then we will just re-run with normal Cox
+lasso_selection <- function(imputed) {
+	good_cols <- c()
+	for (n in 1:imputed$m) {
+		new_df <- complete(imputed, n) %>% filter(br_trialduration > 0)
+		x <- model.matrix(
+			~ industry_any3 + 
+			~ primary_purpose + 
+			~ phase +
+			~ new_arms + 
+			enrollment +
+			~ br_masking2 +
+			~ br_allocation +
+			~ has_dmc +
+			~ br_gni_lmic_hic_only +
+			interv_behavioral +
+			interv_biological +
+			interv_combination +
+			interv_device +
+			interv_diagnostic +
+			interv_dietary +
+			interv_drug +
+			interv_genetic +
+			interv_other +
+			interv_procedure +
+			interv_radiation +
+      location_esophagus +
+      location_stomach +
+      location_small_intestine +
+      location_colon_rectum +
+      location_anus +
+      location_liver +
+      location_biliarytract +
+      location_gallbladder +
+      location_pancreas +
+      location_peritoneum +
+      location_notspecified +
+      neoplasia_disease +
+      abdominal_hernia +
+      appendicitis +
+      cirrhosis +
+      diverticular_disease +
+      fecal_diversion +
+      foreign_body +
+      functional_disorder +
+      gallstones +
+      gerd +
+      hemorrhoids +
+      hypoxic +
+      ileus +
+      ibd +
+      malabsorptive +
+      motility +
+      nafld_nash +
+      nonspecific +
+      pancreatitis +
+      transplant +
+      ulcerative_disease +
+      other +
+			num_facilities,
+			new_df)
+		
+		cv.fit <- cv.glmnet(x, Surv(new_df$br_trialduration, new_df$br_censor_earlydiscontinuation), family = "cox", nfolds = 20, grouped = TRUE, maxit = 1000)
+		fit <- glmnet(x, Surv(new_df$br_trialduration, new_df$br_censor_earlydiscontinuation), family = "cox", maxit = 1000)
+		output <- coef(cv.fit, s = "lambda.min")
+		for (i in 1:length(output[, "1"])) {
+			if (output[, "1"][i] != 0) {
+				good_cols <- c(good_cols, attr(output[, "1", ][i], "names"))
+			}
+		}
+	}
+
+	all_vars <- as.data.frame(table(good_cols)) %>% 
+		filter(Freq == imputed$m)
+
+	return(all_vars$good_cols)
+
+	return(good_cols)
+}

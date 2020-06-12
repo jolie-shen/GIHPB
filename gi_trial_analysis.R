@@ -384,7 +384,7 @@ full_gi_df <-
 full_gi_df <- full_gi_df %>% mutate(number_of_regions = 1 + str_count(all_regions, ";"))
 full_gi_df <- full_gi_df %>% mutate(year_trial = year(study_first_submitted_date)) 
 
-######creating a list of all the columns in full_gi_df I think might be useful in the analysis and called it cols_to_add
+######creating a list of all the columns in full_gi I think might be useful in the analysis and called it cols_to_add
 cols_to_add <- c(
   "nct_id", #------ID
 
@@ -455,7 +455,8 @@ cols_to_add <- c(
 
   "enrollment_type", #------enrollment type
 
-  "overall_status", #-----status, if we want to redefine discontinuation
+  "overall_status",
+  "br_studystatus", #-----status, if we want to redefine discontinuation
 
   "completion_date", #------completion date
 
@@ -504,18 +505,33 @@ cols_to_add <- c(
   "location_pancreas",
   "location_peritoneum",
   "location_notspecified", #----------anatomic location
+
+          "interv_drug",
+          "interv_other",
+          "interv_device",
+          "interv_procedure",
+          "interv_behavioral",
+          "interv_biological",
+          "interv_dietary",
+          "interv_radiation",
+          "interv_diagnostic",
+          "interv_genetic",
+          "interv_combination", #-----intervention types
+
   "year_trial",
   "NorthAmerica", 
   "Europe", 
   "EastAsia", 
   "neither3regions",
   "br_gni_hic"
+
+
   )
                                                                
-# renamed new data table full_gi which takes all the columns from full_gi_df that I 
+# renamed new data table full_gi which takes all the columns from full_gi that I 
 # thought would be useful (i.e. the ones I put into the cols_to_add group)
-full_gi <- subset(full_gi_df, select = cols_to_add)
-
+full_gi <- subset(full_gi, select = cols_to_add)
+							       
 ####################################
 
 # FREQUENCY TABLES and CHI-SQUARE ANALYSIS					       
@@ -1160,7 +1176,7 @@ library(mice)
 library(tidyverse)
 
 # Set factor variables
-micedata <- full_gi_df %>%
+micedata <- full_gi %>%
     mutate(
         early_discontinuation = as.factor(early_discontinuation),
         industry_any2b = as.factor(industry_any2b),
@@ -1174,7 +1190,8 @@ micedata <- full_gi_df %>%
         br_gni_lmic_hic_only = as.factor(br_gni_lmic_hic_only),
         enrollment_type = as.factor(enrollment_type),
         were_results_reported = as.factor(were_results_reported),
-        overall_status = as.factor(overall_status),
+              br_studystatus = as.factor(br_studystatus),
+              br_gni_lmic_hic_only = as.factor(br_gni_lmic_hic_only),
         infection_any = as.factor(infection_any),
         infection_helminth = as.factor(infection_helminth),
         infection_intestines = as.factor(infection_intestines),
@@ -1213,11 +1230,23 @@ micedata <- full_gi_df %>%
         location_gallbladder = as.factor(location_gallbladder),
         location_pancreas = as.factor(location_pancreas),
         location_peritoneum = as.factor(location_peritoneum),
-        location_notspecified = as.factor(location_notspecified)
+        location_notspecified = as.factor(location_notspecified),
+
+          interv_drug = as.factor(interv_drug),
+          interv_other = as.factor(interv_other),
+          interv_device = as.factor(interv_device),
+          interv_procedure = as.factor(interv_procedure),
+          interv_behavioral = as.factor(interv_behavioral),
+          interv_biological = as.factor(interv_biological),
+          interv_dietary = as.factor(interv_dietary),
+          interv_radiation = as.factor(interv_radiation),
+          interv_diagnostic = as.factor(interv_diagnostic),
+          interv_genetic = as.factor(interv_genetic),
+          interv_combination = as.factor(interv_combination)
     )
 
 # set date variables by converting them into numbers "days since 1970", need to convert back out after we have imputed
-micedata <- full_gi_df %>%
+micedata <- full_gi %>%
     mutate(
         completion_date = as.numeric(as.Date(completion_date) - as.Date("1970-01-01"))
     )
@@ -1225,11 +1254,11 @@ micedata <- full_gi_df %>%
 # Relevel to reference groups, picked reference group based on which group had the most, 
 # relevel can only be done for unordered factors, commented out ordered variables
 #full_gi_df$industry_any2b <- relevel(full_gi_df$industry_any2b, ref = "Other")
-full_gi_df$br_phase4_ref_ph3 <- relevel(full_gi_df$br_phase4_ref_ph3, ref = "Phase 1/2-2")
-full_gi_df$new_primary_purpose_treatment <- relevel(full_gi_df$new_primary_purpose_treatment, ref = "Treatment")
+#full_gi_df$br_phase4_ref_ph3 <- relevel(full_gi_df$br_phase4_ref_ph3, ref = "Phase 1/2-2")
+#full_gi_df$new_primary_purpose_treatment <- relevel(full_gi_df$new_primary_purpose_treatment, ref = "Treatment")
 #full_gi_df$interv_all_intervention_types <- relevel(full_gi_df$interv_all_intervention_types, ref = "Biological") #----this one has multiple categories in each separated by ;
 #full_gi_df$br_allocation <- relevel(full_gi_df$br_allocation, ref = "Randomized")
-full_gi_df$br_masking2 <- relevel(full_gi_df$br_masking2, ref = "None")
+#full_gi_df$br_masking2 <- relevel(full_gi_df$br_masking2, ref = "None")
 #full_gi_df$br_gni_lmic_hic_only <- relevel(full_gi_df$br_gni_lmic_hic_only, ref = "HIC Only")
 #full_gi_df$enrollment_type <- relevel(full_gi_df$enrollment_type, ref = "Actual")
 #full_gi_df$overall_status <- relevel(full_gi_df$overall_status, ref = "Completed")
@@ -1271,7 +1300,7 @@ predM <- init$predictorMatrix
 # categorical variables, use polytonomous regression
 # For continuous variables, use predictive mean matching by default 
 methods[c("industry_any2b", "br_phase4_ref_ph3","new_primary_purpose_treatment", 
-      "interv_all_intervention_types","br_masking2","overall_status")] = "polyreg"
+      "interv_all_intervention_types","br_masking2","br_studystatus")] = "polyreg"
 methods[c("early_discontinuation", "bintime", "br_allocation", "has_dmc", "br_gni_lmic_hic_only", "enrollment_type",  
       "were_results_reported", 
       "infection_any",
@@ -1340,7 +1369,8 @@ predictor_vars <- c(
  #"new_first_submit",  #-- PROBLEM 
  "completion_date",  
       "enrollment_type",
-      "overall_status", 
+          "br_studystatus", 
+          "br_gni_lmic_hic_only",
       "were_results_reported",
   "br_time_until_resultsreport_or_present_inmonths",
       "infection_any",
@@ -1382,9 +1412,20 @@ predictor_vars <- c(
       "location_gallbladder",
       "location_pancreas",
       "location_peritoneum",
-      "location_notspecified"
-)
+      "location_notspecified",
 
+          "interv_drug",
+          "interv_other",
+          "interv_device",
+          "interv_procedure",
+          "interv_behavioral",
+          "interv_biological",
+          "interv_dietary",
+          "interv_radiation",
+          "interv_diagnostic",
+          "interv_genetic",
+          "interv_combination"
+)
 
 # Pick which factors should be involved in imputation. This is a well-known
 # issue in multiple imputation. Meng (1994), Rubin (1996), 

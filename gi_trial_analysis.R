@@ -1441,12 +1441,28 @@ get_data <- function(pooled, term) {
 #multivariate, can add in whatever varieables          
 multivar <- pool(with(
     imputed, 
-    glm(early_discontinuation ~ early_discontinuation + industry_any2b + 
+    glm(early_discontinuation ~ industry_any2b + 
       br_phase4_ref_ph3 + enrollment +new_enroll + bintime + new_primary_purpose_treatment + 
       num_facilities + num_regions + br_allocation + br_masking2, family = binomial(link=logit))
     ))
       
+#univariate odds ratio logistic regression 
+or_var <- c("industry_any2b", "primary_purpose", "br_phase4_ref_ph3", "new_enroll", "br_masking2", "br_allocation", "has_dmc", "br_gni_lmic_hic_only", "infection_any", "neoplasia_disease" )
+for (name in or_var) {
+  or <- glm(as.formula(paste0("early_discontinuation ~ ", name)), family = binomial(link=logit), data = full_gi_df)
+  cis <- confint(or)
+  for (foo in 1:length(or$coefficients)) {
+    name <- attr(or$coefficients[foo], "names")
+    if (name != "(Intercept)") {
+      number <- as.numeric(or$coefficients[foo])
+      low_ci <- cis[name, 1]
+      hi_ci <- cis[name, 2]
 
+      print(paste0(name, ": ", round(exp(number), 3), " (", round(exp(low_ci), 3), "-", round(exp(hi_ci), 3), ")"))
+    }
+  }
+}
+		 
 # Create Kaplan-Meier curves and associated tables
 save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
   if (is.na(file_name)) {

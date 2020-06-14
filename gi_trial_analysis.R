@@ -744,23 +744,19 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
 
 if(include_disease){
   output <- rbind(
-    all_diseases,
-    pp, 
-    phase, 
-      all_interventions,
-    study_arms, 
-    masking, 
-    enrollment, 
-    randomized, 
-    has_dmc, 
-    num_countries, 
-    regions, 
-    num_regions, 
-    num_facilities, 
-    sponsor,
-      study_status,
-      hmic_vs_lmic, 
-    reported)
+          pp, 
+          phase, 
+	  enrollment, 
+	  reported, 
+	  masking, 
+	  randomized, 
+	  has_dmc, 
+	  study_arms, 
+	  hmic_vs_lmic, 
+	  num_facilities,
+          all_interventions,
+	  all_diseases,
+    	  sponsor)
   } else {
     output <- rbind(
       all_interventions,
@@ -787,7 +783,7 @@ if(include_disease){
 
 #------TABLE 1 SIMILAR TO OPHTHO TRIAL------# 
 #-----STRATIFIED BY YEAR USING BIN--------#                    
-table1 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = bintime), c("2007_2012", "2013_2018"), FALSE)) 
+table1 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = bintime), c("2007_2012", "2013_2018"), TRUE)) 
 y <- table1 %>% 
   # filter(V2 != "Missing" | V3 != 0) %>%
   filter(V2 != "No") %>%

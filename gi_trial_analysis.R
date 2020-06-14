@@ -153,7 +153,13 @@ joined_df <-
             Bigtbl,
             by = 'nct_id')
 
-
+								 
+joined_df <- joined_df %>% mutate(early_discontinuation = ifelse(br_studystatus == 'Stopped early', TRUE, FALSE),
+          early_discontinuation_completed_vs_stoppedearly = case_when(
+            br_studystatus == 'Completed' ~ FALSE,
+            br_studystatus == 'Stopped early' ~ TRUE,
+            TRUE ~ NA
+          ))
 
 add_additional_columns <- function(input_df) {
   if ("numeric_study_first_submitted_date" %in% colnames(input_df)) {
@@ -389,13 +395,7 @@ add_additional_columns <- function(input_df) {
 }
 
 full_gi_df <- add_additional_columns(joined_df)
-								 
-full_gi_df<- full_gi_df %>% mutate(early_discontinuation = ifelse(br_studystatus == 'Stopped early', TRUE, FALSE),
-          early_discontinuation_completed_vs_stoppedearly = case_when(
-            br_studystatus == 'Completed' ~ FALSE,
-            br_studystatus == 'Stopped early' ~ TRUE,
-            TRUE ~ NA
-          ))
+
 
 
 # -------------------------------------------------------------------------#

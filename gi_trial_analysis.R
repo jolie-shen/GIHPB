@@ -331,12 +331,6 @@ add_additional_columns <- function(input_df) {
                                           NorthAmerica = 'NorthAmerica', Europe = 'Europe', EastAsia = 'EastAsia', 
                                           OtherAndMultiRegion = c('MultiRegion','MiddleEast','SouthAmerica','SoutheastAsia',
                                                                   'SouthAsia','Africa','Oceania','CentralAmerica'))) %>% 
-    mutate(early_discontinuation = ifelse(br_studystatus == 'Stopped early', TRUE, FALSE),
-          early_discontinuation_completed_vs_stoppedearly = case_when(
-            br_studystatus == 'Completed' ~ FALSE,
-            br_studystatus == 'Stopped early' ~ TRUE,
-            TRUE ~ NA
-          )) %>%
     mutate(br_time_until_resultsreport_or_present_inmonths = case_when(
       br_studystatus != 'Completed' ~ NA_real_,
       were_results_reported ~ as.period(results_first_submitted_date - primary_completion_date) / months(1),
@@ -395,6 +389,13 @@ add_additional_columns <- function(input_df) {
 }
 
 full_gi_df <- add_additional_columns(joined_df)
+								 
+full_gi_df<- full_gi_df %>% mutate(early_discontinuation = ifelse(br_studystatus == 'Stopped early', TRUE, FALSE),
+          early_discontinuation_completed_vs_stoppedearly = case_when(
+            br_studystatus == 'Completed' ~ FALSE,
+            br_studystatus == 'Stopped early' ~ TRUE,
+            TRUE ~ NA
+          ))
 
 
 # -------------------------------------------------------------------------#

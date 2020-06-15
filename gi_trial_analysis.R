@@ -1427,44 +1427,106 @@ imputed <- mice(
 # then uses this set of rules to pool to coefficents into an average)
 # glm is the logistic regression function. adjusted risk ratio is the e^coefficient value provided
 
-# Function that returns the data associated with a coefficient term
-get_data <- function(pooled, term) {
-    summ <- summary(pooled)
-    for (i in 1:length(summ$term)) {
-        if ((summ$term)[i] == term) {
-            v <- c(exp((summ$estimate)[i]), (summ$std.error)[i], (summ$p.value)[i])
-            return(v)
-        }
-    }
-    return(c(NA,NA,NA))
+fmla <- as.formula("early_discontinuation ~ 
+	industry_any2b +
+	primary_purpose +
+	br_phase4_ref_ph3 +
+	new_enroll +
+	br_masking2  +
+	br_allocation +
+	has_dmc +
+	br_gni_lmic_hic_only +
+	num_facilities +
+	infection_any +
+	infection_helminth +
+	infection_intestines +
+	infection_hepatitis +
+	neoplasia_primary +
+	neoplasia_metastasis +
+	neoplasia_disease +
+	abdominal_hernia +
+	appendicitis +
+	cirrhosis +
+	diverticular_disease +
+	fecal_diversion +
+	foreign_body +
+	functional_disorder +
+	gallstones +
+	gerd +
+	hemorrhoids +
+	hypoxic +
+	ileus +
+	ibd +
+	malabsorptive +
+	motility +
+	nafld_nash +
+	nonspecific +
+	pancreatitis +
+	transplant +
+	ulcerative_disease +
+	other +
+	location_esophagus +
+	location_stomach +
+	location_small_intestine +
+	location_colon_rectum +
+	location_anus +
+	location_liver +
+	location_biliarytract +
+	location_gallbladder +
+	location_pancreas +
+	location_peritoneum +
+	location_notspecified +
+	interv_drug +
+	interv_other +
+	interv_device +
+	interv_procedure +
+	interv_behavioral +
+	interv_biological +
+	interv_dietary +
+	interv_radiation  +
+	interv_diagnostic  +
+	interv_genetic  +
+	interv_combination")
+
+output <- imputed %>% 
+	mice::complete("all") %>%
+	lapply(function(i) {
+		add_additional_columns(i) %>% filter(br_trialduration >= 0)
+	}) %>%
+	lapply(glm, formula = fmla, family = binomial(link = logit)) %>%
+	pool()
+
+cis <- confint(output)
+
+for (name in attr(output$coefficients, "names")) {
+	number <- round(exp(as.numeric(output$coefficients[name])), 3)
+	low_ci <- round(exp(cis[name, 1]), 3)
+	hi_ci <- round(exp(cis[name, 2]), 3)
+	p_val <- NA
+	try(p_val <- round(coef(summary(output))[name, "Pr(>|z|)"], 3), silent = TRUE)
+	if (!is.na(p_val)) {
+		if (p_val < 0.0001) {
+			p_val <- paste0(p_val, "****")
+		} else if (p_val < 0.001) {
+			p_val <- paste0(p_val, "***")
+		} else if (p_val < 0.01) {
+			p_val <- paste0(p_val, "**")
+		} else if (p_val < 0.05) {
+			p_val <- paste0(p_val, "*")
+		}
+	}
+
+	print(paste0(name, ": ", number, " (", low_ci, "-", hi_ci, "), p=", p_val))
 }
 
-#multivariate, can add in whatever varieables          
-multivar <- pool(with(
-    imputed, 
-    glm(early_discontinuation ~ industry_any2b + 
-      br_phase4_ref_ph3 + enrollment +new_enroll + bintime + new_primary_purpose_treatment + 
-      num_facilities + num_regions + br_allocation + br_masking2, family = binomial(link=logit))
-    ))
-      
-#univariate odds ratio logistic regression 
-or_var <- c("industry_any2b", "primary_purpose", "br_phase4_ref_ph3", "new_enroll", "br_masking2", "br_allocation", "has_dmc", "br_gni_lmic_hic_only", "infection_any", "neoplasia_disease" )
-for (name in or_var) {
-  or <- glm(as.formula(paste0("early_discontinuation ~ ", name)), family = binomial(link=logit), data = full_gi_df)
-  cis <- confint(or)
-  for (foo in 1:length(or$coefficients)) {
-    name <- attr(or$coefficients[foo], "names")
-    if (name != "(Intercept)") {
-      number <- as.numeric(or$coefficients[foo])
-      low_ci <- cis[name, 1]
-      hi_ci <- cis[name, 2]
 
-      print(paste0(name, ": ", round(exp(number), 3), " (", round(exp(low_ci), 3), "-", round(exp(hi_ci), 3), ")"))
-    }
-  }
-}
 		 
-# Create Kaplan-Meier curves and associated tables
+###############
+		 
+# KAPLAN-MEIER
+		 
+#############
+		 
 save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
   if (is.na(file_name)) {
     file_name <- paste0(var, ".png")

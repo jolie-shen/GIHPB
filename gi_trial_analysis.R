@@ -172,8 +172,8 @@ add_additional_columns <- function(input_df) {
 
   full_gi_df <- input_df %>% 
     mutate(bintime = case_when(
-      year(study_first_submitted_date) <= 2012 ~ '2007_2012',
-      year(study_first_submitted_date) > 2012 ~ '2013_2018',
+      year(study_first_submitted_date) <= 2013 ~ '2007_2013',
+      year(study_first_submitted_date) > 2013 ~ '2014_2019',
       TRUE ~ NA_character_
     )) %>%
     mutate(nct_gi = TRUE)
@@ -401,6 +401,7 @@ full_gi_df <- add_additional_columns(joined_df)
 # -------------------------------------------------------------------------#
 # ---------                 CLEANING UP STOPS HERE                 -------------
 # -------------------------------------------------------------------------#
+
 # -------------------------------------------------------------------------#
 # ---------                JOLIES ANALYSIS                -------------
 # -------------------------------------------------------------------------#
@@ -747,21 +748,21 @@ if(include_disease){
     sponsor,
     pp, 
     phase, 
-    enrollment, 
-    reported, 
-    masking, 
-    randomized, 
-    has_dmc, 
-    study_arms, 
-    hmic_vs_lmic, 
-    num_facilities,
+	  enrollment, 
+	  reported, 
+	  masking, 
+	  randomized, 
+	  has_dmc, 
+	  study_arms, 
+	  hmic_vs_lmic, 
+	  num_facilities,
     all_interventions,
-    all_diseases)
+	  all_diseases)
   } else {
     output <- rbind(
     pp, 
     phase, 
-    all_interventions,
+      all_interventions,
     study_arms, 
     masking, 
     enrollment, 
@@ -772,18 +773,17 @@ if(include_disease){
     num_regions, 
     num_facilities, 
     sponsor, 
-    study_status,
-    hmic_vs_lmic, 
+      study_status,
+      hmic_vs_lmic, 
     reported)
   }
   return(output)
 }
 
 
-
 #------TABLE 1 SIMILAR TO OPHTHO TRIAL------# 
 #-----STRATIFIED BY YEAR USING BIN--------#                    
-table1 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = bintime), c("2007_2012", "2013_2018"), TRUE)) 
+table1 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = bintime), c("2007_2013", "2014_2019"), TRUE)) 
 y <- table1 %>% 
   # filter(V2 != "Missing" | V3 != 0) %>%
   filter(V2 != "No") %>%
@@ -794,7 +794,7 @@ y <- table1 %>%
     Type = ifelse(V2 == "Yes", "", as.character(V2)),
     Total = paste0(V3, " (", V9, "%)"),
     Years_2007_2013 = paste0(V5, " (", V10, "%)"),
-    Years_2013_2018 = paste0(V7, " (", V11, "%)"),
+    Years_2014_2019 = paste0(V7, " (", V11, "%)"),
     Row_PVal = case_when(
                 V12 < 0.0001 ~ paste0(format(round(as.numeric(V12), 3), nsmall = 3), "***"),
                 V12 < 0.001 ~ paste0(format(round(as.numeric(V12), 3), nsmall = 3), "***"),
@@ -809,7 +809,7 @@ y <- table1 %>%
                 V13 < 0.05 ~ paste0(format(round(as.numeric(V13), 3), nsmall = 3), "*"),
                 TRUE ~ as.character(format(round(as.numeric(V13), 3), nsmall = 3))
             ))) %>%
-  select(Name, Type, Total, Years_2007_2013, Years_2013_2018, Row_PVal, Group_PVal)
+  select(Name, Type, Total, Years_2007_2013, Years_2014_2019, Row_PVal, Group_PVal)
 
 
 #------TABLE 2 SIMILAR TO OPHTHO TRIAL------# 

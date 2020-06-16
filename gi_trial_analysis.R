@@ -1520,7 +1520,7 @@ do_logistic <- function(output_variable, imputed) {
   }
 }
 
-do_logistic("br_were_results_reported_within_2year", imputed)
+do_logistic("br_were_results_reported_within_1year", imputed)
 do_logistic("early_discontinuation_completed_vs_stoppedearly", imputed)
 
 ###############

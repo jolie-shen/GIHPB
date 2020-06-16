@@ -401,7 +401,6 @@ full_gi_df <- add_additional_columns(joined_df)
 # -------------------------------------------------------------------------#
 # ---------                 CLEANING UP STOPS HERE                 -------------
 # -------------------------------------------------------------------------#
-
 # -------------------------------------------------------------------------#
 # ---------                JOLIES ANALYSIS                -------------
 # -------------------------------------------------------------------------#
@@ -745,25 +744,24 @@ do_table_analysis <- function(already_mutated, cols, include_disease) {
 
 if(include_disease){
   output <- rbind(
-          pp, 
-          phase, 
-	  enrollment, 
-	  reported, 
-	  masking, 
-	  randomized, 
-	  has_dmc, 
-	  study_arms, 
-	  hmic_vs_lmic, 
-	  num_facilities,
-          all_interventions,
-	  all_diseases,
-    	  sponsor)
-  } else {
-    output <- rbind(
-      all_interventions,
+    sponsor,
     pp, 
     phase, 
-      all_interventions,
+    enrollment, 
+    reported, 
+    masking, 
+    randomized, 
+    has_dmc, 
+    study_arms, 
+    hmic_vs_lmic, 
+    num_facilities,
+    all_interventions,
+    all_diseases)
+  } else {
+    output <- rbind(
+    pp, 
+    phase, 
+    all_interventions,
     study_arms, 
     masking, 
     enrollment, 
@@ -774,12 +772,13 @@ if(include_disease){
     num_regions, 
     num_facilities, 
     sponsor, 
-      study_status,
-      hmic_vs_lmic, 
+    study_status,
+    hmic_vs_lmic, 
     reported)
   }
   return(output)
 }
+
 
 
 #------TABLE 1 SIMILAR TO OPHTHO TRIAL------# 

@@ -1583,7 +1583,7 @@ do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 		      has_dmc +
 		      ~ br_gni_lmic_hic +
           ~ br_singleregion4 +
-		      num_facilities +
+		      ~ new_num_facilities +
 		      infection_any +
 		      infection_helminth +
 		      infection_intestines +
@@ -1665,7 +1665,7 @@ do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 		coef_table <- 
 		    summary_table %>%
 		    tibble::rownames_to_column('coxlevels') %>%
-		    select(coxlevels, name = term, Estimate = estimate, `Std. Error` = std.error, `z value` = statistic, `Pr(>|z|)` = p.value)
+		    dplyr::select(coxlevels, name = term, Estimate = estimate, `Std. Error` = std.error, `z value` = statistic, `Pr(>|z|)` = p.value)
 
 		# select the two columns that correspond to the upper and lower confidence estimates
 		conf_table <- 
@@ -1701,34 +1701,74 @@ do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 		                coxpvals < 0.05 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "*"),
 		                TRUE ~ as.character(format(round(coxpvals, 3), nsmall = 3))
 		            )) %>%
-		    select(name, FMT_HR, FMT_conf, FMT_PVAL)
+		    dplyr::select(name, FMT_HR, FMT_conf, FMT_PVAL)
 		
 		return(coef_full_table)
 	} else {
+    should_standardize <- TRUE
 		good_cols <- c()
 		for (data in output) {
 			mat <- as.matrix(data)
 			mat <- mat[ , ! colnames(mat) %in% c("br_trialduration", "br_censor_earlydiscontinuation")]
-			cv.fit <- cv.glmnet(mat, Surv(data$br_trialduration, data$br_censor_earlydiscontinuation), alpha = alpha, family = "cox", nfolds = 20, grouped = TRUE, maxit = 1000)
-			fit <- glmnet(mat, Surv(data$br_trialduration, data$br_censor_earlydiscontinuation), alpha = alpha, family = "cox", maxit = 1000)
-			output <- coef(cv.fit, s = "lambda.min")
-			for (i in 1:length(output[, "1"])) {
-				if (output[, "1"][i] != 0) {
-					good_cols <- c(good_cols, attr(output[, "1", ][i], "names"))
+			cv.fit <- cv.glmnet(mat, Surv(data$br_trialduration, data$br_censor_earlydiscontinuation), alpha = alpha, standardize = should_standardize, family = "cox", nfolds = 20, grouped = TRUE, maxit = 1000)
+			fit <- glmnet(mat, Surv(data$br_trialduration, data$br_censor_earlydiscontinuation), alpha = alpha, standardize = should_standardize, family = "cox", maxit = 1000)
+			coefs <- coef(cv.fit, s = "lambda.min")
+			for (i in 1:length(coefs[, "1"])) {
+				if (coefs[, "1"][i] != 0) {
+					good_cols <- c(good_cols, attr(coefs[, "1", ][i], "names"))
 				}
 			}
-			# Remove two columns
 		}
 
+    # https://pubmed.ncbi.nlm.nih.gov/18203127/
 		all_vars <- as.data.frame(table(good_cols)) %>% 
-			filter(Freq == imputed$m)
+			filter(Freq >= imputed$m / 2)
 
 		return(all_vars$good_cols)
 	}
 }
 
+# Still need to do: Assess Cox fit, prove MAR, and prove PH assumption
+# Fit PH models based on all variables, variables significant in bivariate, stepwise p-values,
+# stepwise AIC, domain knowledge, and lasso regression
 
 cox_results <- do_cox(imputed)
 lasso_columns <- do_cox(imputed, do_lasso = TRUE)
 lasso_cox_results <- do_cox(imputed, do_lasso = FALSE, vars_to_select = lasso_columns)
 joined <- full_join(cox_results, lasso_cox_results, by = "name", suffix = c(".full", ".lasso"))
+
+stepwise_cox_results <- do_cox(imputed, do_lasso = FALSE, vars_to_select = c(
+  "new_enroll[ 100, 500)",
+  "new_enroll[  50, 100)",
+  "new_enroll[  10,  50)",
+  "new_enroll[ 500,1000)",
+  "new_enroll[1000, Inf]",
+  "br_allocationRandomized",
+  "industry_any2bOther",
+  "industry_any2bUS.Govt",
+  "br_masking2Double",
+  "br_phase4_ref_ph3Phase 1",
+  "br_singleregion4EastAsia",
+  "new_num_facilities[ 10,Inf]",
+  "infection_anyTRUE",
+  "interv_radiationTRUE",
+  "location_liverTRUE",
+  "motilityTRUE",
+  "br_gni_lmic_hicLMIC and HIC",
+  "new_num_facilities  2",
+  "primary_purposeDiagnostic",
+  "interv_drugTRUE",
+  "has_dmcTRUE",
+  "interv_deviceTRUE",
+  "infection_intestinesTRUE",
+  "nafld_nashTRUE",
+  "nonspecificTRUE",
+  "primary_purposeSupportive Care",
+  "new_num_facilities[  3, 10)",
+  "interv_geneticTRUE",
+  "location_gallbladderTRUE",
+  "pancreatitisTRUE",
+  "ulcerative_diseaseTRUE",
+  "br_masking2Single"))
+
+joined <- left_join(joined, stepwise_cox_results, by = "name", suffix = c("", ".stepwise"))

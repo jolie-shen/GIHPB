@@ -1,20 +1,17 @@
 # File looking at GI trials
 set.seed(5)
-wants <- c('zip', 'DescTools', 'svMisc', 'ggpubr', 'Hmisc', 'mice', 'glmnet', 'tidyverse','RPostgreSQL', 'europepmc', 'RefManageR', 'DT', 'lubridate', 'ggplot2', 'openxlsx', 'survminer', 'Kendall', 'coin', 'dplyr')
+libraries <- c(
+  'zip', 'DescTools', 'svMisc', 'ggpubr', 'Hmisc', 'mice', 'glmnet', 
+  'tidyverse', 'RefManageR', 'DT', 'lubridate', 'ggplot2', 'openxlsx', 
+  'survminer', 'Kendall', 'coin', 'dplyr'
+)
 
-# ------------------------------------- On Laptop
 
-has <- wants %in% row.names(installed.packages())
-if(any(!has)) install.packages(wants[!has])
+# Load libraries
+loaded <- lapply(libraries, library, character.only = TRUE)
 
-obtained <- unlist(lapply(wants, require, character.only = TRUE))
-names(obtained) <- wants
-
-data.frame(loaded = obtained)
-
-setwd("~/Downloads/R stuff") 
-source('brandonfunctions.r')
-
+# Set working directory
+setwd("~/Downloads/R stuff")
 
 # --------------------------------------------------------------------------------------------------------- #
 # --------------------------           Load The Rest Of The Clinical Trials Data          -------------------
@@ -22,26 +19,27 @@ source('brandonfunctions.r')
 
 # ----- WHAT VERSION OF DATA DO WE WANT TO USE?? --------------------
 gianalysis_data_directory <- 'all_ctgov_tables_oct_29_2019'
-# gianalysis_data_directory <- 'BackupDataFiles/all_ctgov_tables_oct_29_2019'
 
 # load most of the supporting tables
-load(file = file.path(gianalysis_data_directory, 'nct_startupfiles_1b.RData')) # includes things like my_fac2 or my_studies, already processed
-
-# Bigtbl
+# includes things like my_fac2 or my_studies, already processed
+load(file = file.path(gianalysis_data_directory, 'nct_startupfiles_1b.RData')) 
 load(file = file.path(gianalysis_data_directory, 'Bigtbl.Rdata'))
-cutoff_date <- ymd(unique(Bigtbl %>% pull(br_ctgov_download_date)))
 
 # Load the FDAAA Tracker Data
-fdaaa_tracker_data <- readRDS(file = file.path(gianalysis_data_directory, 'fdaaa_tracker_data.rds'))
-colnames(fdaaa_tracker_data) <- paste0('fdaaatracker_', colnames(fdaaa_tracker_data))
+fdaaa_tracker_data <- readRDS(
+  file = file.path(gianalysis_data_directory, 'fdaaa_tracker_data.rds')
+)
+fdaa_cols <- colnames(fdaaa_tracker_data)
+colnames(fdaaa_tracker_data) <- paste0('fdaaatracker_', fdaa_cols)
 
 
 # -------------------------------------------------------------------------------------------------------- #
 # --------------------        load and organize data from GI Team       --------------------------
 # -------------------------------------------------------------------------------------------------------- #
 
+xls_file_path <- 'all_ctgov_tables_oct_29_2019/gi_hpb_initial_data.xlsx'
 raw_gi_list <- 
-  openxlsx::read.xlsx(xlsxFile = 'all_ctgov_tables_oct_29_2019/gi_hpb_initial_data.xlsx',
+  openxlsx::read.xlsx(xlsxFile = xls_file_path,
                       sheet = 1, startRow = 1) %>%
   as_tibble() %>%
   mutate_all(as.character)
@@ -56,7 +54,6 @@ cols_disease_full <-
     'cirrhosis',
     'diverticular_disease',
     'fecal_diversion',
-    'foreign_body',
     'functional_disorder',
     'gallstones',
     'gerd',
@@ -71,7 +68,8 @@ cols_disease_full <-
     'pancreatitis',
     'transplant',
     'ulcerative_disease',
-    'other')
+    'other'
+  )
 
 #white columns below
 spec_disease <- 
@@ -81,7 +79,7 @@ spec_disease <-
     'infection_hepatitis',
     'neoplasia_primary',
     'neoplasia_metastasis'
-    )
+  )
 
 #location columns
 cols_location <-
@@ -99,12 +97,26 @@ cols_location <-
     'location_notspecified'
   )
 
+cols_interventions <- 
+  c(
+    "interv_drug",
+    "interv_other",
+    "interv_device",
+    "interv_procedure",
+    "interv_behavioral",
+    "interv_biological",
+    "interv_dietary",
+    "interv_radiation",
+    "interv_diagnostic",
+    "interv_genetic",
+    "interv_combination"
+  )
+
 all_disease_cols <- c(cols_location, cols_disease_full, spec_disease)
 cols_disease <- c(cols_disease_full, spec_disease)
 cols_location <- c(cols_location)
 
-raw_gi_list <- 
-  raw_gi_list %>%
+raw_gi_list <- raw_gi_list %>%
   select(nct_id, true_gi, one_of(all_disease_cols), coder, codecount)
 
 
@@ -153,24 +165,32 @@ joined_df <-
             Bigtbl,
             by = 'nct_id')
 
-								 
-joined_df <- joined_df %>% mutate(early_discontinuation = ifelse(br_studystatus == 'Stopped early', TRUE, FALSE),
-          early_discontinuation_completed_vs_stoppedearly = case_when(
-            br_studystatus == 'Completed' ~ FALSE,
-            br_studystatus == 'Stopped early' ~ TRUE,
-            TRUE ~ NA
-          ))
 
-add_additional_columns <- function(input_df) {
-  if ("numeric_study_first_submitted_date" %in% colnames(input_df)) {
+# Adds in all of the computed columns used by full_gi_df. This is factored
+# out into another function so that after imputation, we can re-compute
+# columns based on that
+add_additional_columns <- function(input_df, recompute_dates = FALSE) {
+  if (recompute_dates) {
     input_df <- input_df %>%
-      mutate(study_first_submitted_date = as.Date("1970-01-01") + numeric_study_first_submitted_date) %>%
-      mutate(start_date = as.Date("1970-01-01") + numeric_start_date) %>%
-      mutate(results_first_submitted_date = as.Date("1970-01-01") + numeric_results_first_submitted_date) %>%
-      mutate(primary_completion_date = as.Date("1970-01-01") + numeric_primary_completion_date)
+      mutate(study_first_submitted_date = 
+        as.Date("1970-01-01") + numeric_study_first_submitted_date) %>%
+      mutate(start_date = 
+        as.Date("1970-01-01") + numeric_start_date) %>%
+      mutate(results_first_submitted_date = 
+        as.Date("1970-01-01") + numeric_results_first_submitted_date) %>%
+      mutate(primary_completion_date = 
+        as.Date("1970-01-01") + numeric_primary_completion_date)
   }
 
   full_gi_df <- input_df %>% 
+    mutate(early_discontinuation = 
+      ifelse(br_studystatus == 'Stopped early', TRUE, FALSE),
+      early_discontinuation_completed_vs_stoppedearly = case_when(
+        br_studystatus == 'Completed' ~ FALSE,
+        br_studystatus == 'Stopped early' ~ TRUE,
+        TRUE ~ NA
+      )
+    ) %>%
     mutate(bintime = case_when(
       year(study_first_submitted_date) <= 2012 ~ '2007_2012',
       year(study_first_submitted_date) > 2012 ~ '2013_2018',
@@ -179,17 +199,14 @@ add_additional_columns <- function(input_df) {
     mutate(nct_gi = TRUE)
 
   # any in our set no longer in the full set? We should remove these...
-  setdiff(full_gi_df %>% pull(nct_id), 
-          Bigtbl %>% pull(nct_id))
-
-  full_gi_df <- 
-    full_gi_df %>%
-    filter(nct_id %nin% setdiff(full_gi_df %>% pull(nct_id), 
-                                Bigtbl %>% pull(nct_id)))
-
+  diff <- setdiff(full_gi_df %>% pull(nct_id), Bigtbl %>% pull(nct_id))
+  full_gi_df <- full_gi_df %>% filter(nct_id %nin% diff)
 
   # ------ Get Max Date, basically date it was pulled 
-  gi_maxdate <- full_gi_df %>% pull(study_first_submitted_date) %>% max(na.rm = TRUE) # get the last date for trials that we used
+   # get the last date for trials that we used
+  gi_maxdate <- full_gi_df %>% 
+    pull(study_first_submitted_date) %>% 
+    max(na.rm = TRUE)
   gi_maxdate
 
   #Oct 24 2019
@@ -198,25 +215,34 @@ add_additional_columns <- function(input_df) {
   # filter out interventional and stuff before May 1 2018 or after Oct 1 2007 - MARIJA to find out what this is 
           # 10/1/2007 - the date clinical trials mandated to be put in
           # 5/1/2018 arbitrary for neuroanalysis
-
+  early_date <- '20071001'
+  late_date <- '20180501'
   full_gi_df <- 
     full_gi_df %>%
     filter(study_type == 'Interventional') %>% 
-    filter(study_first_submitted_date >= ymd('20071001')) %>%
-    filter(study_first_submitted_date < ymd('20180501'))
-
-
+    filter(study_first_submitted_date >= ymd(early_date)) %>%
+    filter(study_first_submitted_date < ymd(late_date))
 
   # -------------------------------------------# 
   # -------- Get Size Data
 
-  my_studies %>% count(study_first_submitted_date <= gi_maxdate) # how many trials were in database at time that we downloaded stuff? 
-  btest0 <- my_studies %>% count(study_first_submitted_date <= gi_maxdate) %>% {colnames(.)[1] <- 'totaltrials'; .}
-  btest0b <- my_studies %>% count(study_first_submitted_date < ymd('20180501')) %>% {colnames(.)[1] <- 'totaltrials'; .}
+  # how many trials were in database at time that we downloaded stuff? 
+  my_studies %>% count(study_first_submitted_date <= gi_maxdate) 
+  btest0 <- my_studies %>% 
+    count(study_first_submitted_date <= gi_maxdate) %>% 
+    {colnames(.)[1] <- 'totaltrials'; .}
+  btest0b <- my_studies %>% 
+    count(study_first_submitted_date < ymd(late_date)) %>% 
+    {colnames(.)[1] <- 'totaltrials'; .}
 
-  btest1 <- my_studies %>% filter(study_first_submitted_date < ymd('20180501'))
-  btest2 <- btest1 %>% filter(study_type == 'Interventional') # how many interventional trials? 
-  btest3 <- btest2 %>% filter(study_first_submitted_date >= ymd('20071001')) # how many lost because submitted before Oct 2007?
+  btest1 <- my_studies %>% 
+    filter(study_first_submitted_date < ymd(late_date))
+
+  # how many interventional trials? 
+  btest2 <- btest1 %>% filter(study_type == 'Interventional') 
+
+  # how many lost because submitted before Oct 2007?
+  btest3 <- btest2 %>% filter(study_first_submitted_date >= ymd(early_date))
 
   #These numbers are no longer updated but should be larger 
               
@@ -260,21 +286,21 @@ add_additional_columns <- function(input_df) {
   col_regions <- c('Africa', 'CentralAmerica', 'EastAsia', 'Europe', 
                   'MiddleEast', 'NorthAmerica', 'Oceania',
                   'Other', 'SouthAmerica', 'SouthAsia', 'SoutheastAsia')
-  # list(Africa, CentralAmerica, EastAsia, Europe, 
-  # MiddleEast, NorthAmerica, Oceania,
-  # Other, SouthAmerica, SouthAsia, SoutheastAsia)
 
-  full_gi_df$Africa <- as.logical(full_gi_df$Africa)
-  full_gi_df$CentralAmerica <- as.logical(full_gi_df$CentralAmerica)
-  full_gi_df$EastAsia <- as.logical(full_gi_df$EastAsia)
-  full_gi_df$Europe <- as.logical(full_gi_df$Europe)
-  full_gi_df$MiddleEast <- as.logical(full_gi_df$MiddleEast)
-  full_gi_df$NorthAmerica <- as.logical(full_gi_df$NorthAmerica)
-  full_gi_df$Oceania <- as.logical(full_gi_df$Oceania)
-  full_gi_df$Other <- as.logical(full_gi_df$Other)
-  full_gi_df$SouthAmerica <- as.logical(full_gi_df$SouthAmerica)
-  full_gi_df$SouthAsia <- as.logical(full_gi_df$SouthAsia)
-  full_gi_df$SoutheastAsia <- as.logical(full_gi_df$SoutheastAsia)
+  for (col in col_regions) {
+    full_gi_df <- full_gi_df %>% 
+      mutate(!! rlang::sym(col) := as.logical(!! rlang::sym(col)))
+  }
+
+  for (col in cols_disease) {
+    full_gi_df <- full_gi_df %>% 
+      mutate(!! rlang::sym(col) := as.logical(!! rlang::sym(col)))
+  }
+
+  for (col in cols_location) {
+    full_gi_df <- full_gi_df %>% 
+      mutate(!! rlang::sym(col) := as.logical(!! rlang::sym(col)))
+  }
 
   # add regional data
   full_gi_df <-
@@ -284,112 +310,140 @@ add_additional_columns <- function(input_df) {
                                               is.na(.) ~ FALSE, 
                                               TRUE ~ .)))
 
-  for (col in cols_disease) {
-    full_gi_df <- full_gi_df %>% mutate(!! rlang::sym(col) := as.logical(!! rlang::sym(col)))
-  }
-
-  for (col in cols_location) {
-    full_gi_df <- full_gi_df %>% mutate(!! rlang::sym(col) := as.logical(!! rlang::sym(col)))
-  }
-
   full_gi_df$were_results_reported <- as.logical(full_gi_df$were_results_reported)
   full_gi_df$br_gni_hic <- as.logical(full_gi_df$br_gni_hic)
 
   # add a bunch of other useful columns        
   full_gi_df <-
     full_gi_df %>%
-    mutate(new_arms = Hmisc::cut2(x = number_of_arms, cuts = c(1,2,3,Inf)),
-          new_arms2 = Hmisc::cut2(x = number_of_arms, cuts = c(2, Inf))) %>%
-    mutate(new_enroll = Hmisc::cut2(x = enrollment, cuts = c(10, 50, 100, 500, 1000, Inf))) %>% 
-    mutate(new_enroll2 = Hmisc::cut2(x = enrollment, cuts = c(100, Inf))) %>%
-    mutate(enroll_10 = enrollment / 10,
-          enroll_20 = enrollment / 20) %>%
-    mutate(new_first_submit = year(study_first_submitted_date)) %>%
-    mutate(new_num_regions = Hmisc::cut2(x = num_regions, cuts = c(1,2,3, Inf)),
-          new_num_regions2 = Hmisc::cut2(x = num_regions, cuts = c(2, Inf)),
-          new_num_facilities = Hmisc::cut2(x = num_facilities, cuts = c(1,2,3,10,Inf)),
-          new_num_facilities2 = Hmisc::cut2(x = num_facilities, cuts = c(2, Inf))) %>%
-    mutate(new_br_phase2 = fct_explicit_na(br_phase2, na_level = 'Unknown Phase')) %>%
-    mutate(new_br_phase2 = fct_relevel(new_br_phase2, 'Phase 2')) %>%
-    mutate(primary_purpose = fct_relevel(primary_purpose, 'Treatment'),
-          new_primary_purpose_treatment = fct_collapse(.f = primary_purpose, # should be able to use group_other here rather than use setdiff
-                                                        Treatment = 'Treatment', Prevention = 'Prevention', `Basic Science` = 'Basic Science',  # but there is a known forcats bug right now
-                                                        Other = setdiff(primary_purpose, c("Treatment", "Prevention", "Basic Science")), group_other = FALSE), # generates "Unknown levels in `f`"
-          new_primary_purpose_treatment2 = fct_lump(primary_purpose, n = 3)) %>%
-    mutate(new_actduration = Hmisc::cut2(actual_duration, c(0, 10, 20, 30, 40, 50, Inf))) %>%
-    mutate(br_masking2 = fct_relevel(br_masking2, 'None')) %>%
-    mutate(num_disease_groups = pmap_dbl(list(!!! rlang::syms(cols_disease)),
-                                        function(...) sum(...))) %>%
-    mutate(single_disease_group = pmap_chr(list(!!! rlang::syms(cols_disease)),
-                                          function(...) paste0(cols_disease[which(x = c(...))], collapse = ','))) %>%
-    mutate(single_disease_group = case_when(
-      num_disease_groups > 1 ~ 'multi_disease',
-      TRUE ~ single_disease_group)) %>%
-    mutate(num_location_group = pmap_dbl(list(!!! rlang::syms(cols_location)),
-                                          function(...) sum(...))) %>%
-    mutate(single_location_group = pmap_chr(list(!!! rlang::syms(cols_location)),
-                                          function(...) paste0(cols_location[which(x = c(...))], collapse = ','))) %>%
-    mutate(single_location_group = case_when(
-      num_location_group > 1 ~ 'multi_location',
-      TRUE ~ single_location_group)) %>%
-    # mutate(br_singleregion4 = fct_lump(br_singleregion, n = 4)) %>% # I don't like this one, I want more reproducibility for which regions
-    mutate(br_singleregion4 = fct_collapse(.f = br_singleregion,
-                                          NorthAmerica = 'NorthAmerica', Europe = 'Europe', EastAsia = 'EastAsia', 
-                                          OtherAndMultiRegion = c('MultiRegion','MiddleEast','SouthAmerica','SoutheastAsia',
-                                                                  'SouthAsia','Africa','Oceania','CentralAmerica'))) %>% 
-    mutate(br_time_until_resultsreport_or_present_inmonths = case_when(
-      br_studystatus != 'Completed' ~ NA_real_,
-      were_results_reported ~ as.period(results_first_submitted_date - primary_completion_date) / months(1),
-      TRUE ~ as.period(ymd('20180501') - primary_completion_date) / months(1)
-    )) %>%
-    mutate(br_censor_were_results_reported = as.numeric(were_results_reported)) %>%
-    mutate(br_were_results_reported_within_2year = case_when(
-      br_studystatus != 'Completed' ~ NA,
-      primary_completion_date >= ymd('20160501') ~ NA, # we only consider trials completed >=2 years ago (we should later change this to not be hard coded)
-      were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 24) ~ TRUE,
-      TRUE ~ FALSE
-    )) %>%
-    mutate(br_were_results_reported_within_1year = case_when(
-      br_studystatus != 'Completed' ~ NA,
-      primary_completion_date >= ymd('20170501') ~ NA, # we only consider trials completed >=1 year ago
-      were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 12) ~ TRUE,
-      TRUE ~ FALSE
-    )) %>%
     mutate(
+      new_arms = Hmisc::cut2(x = number_of_arms, cuts = c(1,2,3,Inf)),
+      new_arms2 = Hmisc::cut2(x = number_of_arms, cuts = c(2, Inf)),
+      new_enroll = Hmisc::cut2(x = enrollment, cuts = c(10, 50, 100, 500, 1000, Inf)),
+      new_enroll2 = Hmisc::cut2(x = enrollment, cuts = c(100, Inf)),
+      enroll_10 = enrollment / 10,
+      enroll_20 = enrollment / 20,
+      new_first_submit = year(study_first_submitted_date),
+      new_num_regions = Hmisc::cut2(x = num_regions, cuts = c(1,2,3, Inf)),
+      new_num_regions2 = Hmisc::cut2(x = num_regions, cuts = c(2, Inf)),
+      new_num_facilities = Hmisc::cut2(x = num_facilities, cuts = c(1,2,3,10,Inf)),
+      new_num_facilities2 = Hmisc::cut2(x = num_facilities, cuts = c(2, Inf)),
+      new_br_phase2 = fct_relevel(
+        fct_explicit_na(br_phase2, na_level = 'Unknown Phase'), 'Phase 2'
+      ),
+      primary_purpose = fct_relevel(primary_purpose, 'Treatment'),
+      new_primary_purpose_treatment = fct_collapse(
+        .f = primary_purpose, # should be able to use group_other here rather than use setdiff
+        Treatment = 'Treatment', 
+        Prevention = 'Prevention', 
+        `Basic Science` = 'Basic Science',  # but there is a known forcats bug right now
+        Other = setdiff(
+          primary_purpose, 
+          c("Treatment", "Prevention", "Basic Science")
+        ), 
+        group_other = FALSE
+      ),
+      new_primary_purpose_treatment2 = fct_lump(primary_purpose, n = 3),
+      new_actduration = Hmisc::cut2(actual_duration, c(0, 10, 20, 30, 40, 50, Inf)),
+      br_masking2 = fct_relevel(br_masking2, 'None'),
+      num_disease_groups = pmap_dbl(
+        list(!!! rlang::syms(cols_disease)),
+        function(...) sum(...)
+      ),
+      single_disease_group = pmap_chr(
+        list(!!! rlang::syms(cols_disease)),
+        function(...) paste0(cols_disease[which(x = c(...))], collapse = ',')
+      ),
+      single_disease_group = case_when(
+        num_disease_groups > 1 ~ 'multi_disease',
+        TRUE ~ single_disease_group
+      ),
+      num_location_group = pmap_dbl(
+        list(!!! rlang::syms(cols_location)),
+        function(...) sum(...)
+      ),
+      single_location_group = pmap_chr(
+        list(!!! rlang::syms(cols_location)),
+        function(...) paste0(cols_location[which(x = c(...))], collapse = ',')
+      ),
+      single_location_group = case_when(
+        num_location_group > 1 ~ 'multi_location',
+        TRUE ~ single_location_group
+      ),
+      br_singleregion4 = fct_collapse(
+        .f = br_singleregion,
+        NorthAmerica = 'NorthAmerica', 
+        Europe = 'Europe', 
+        EastAsia = 'EastAsia', 
+        OtherAndMultiRegion = c(
+          'MultiRegion', 'MiddleEast', 'SouthAmerica', 'SoutheastAsia', 
+          'SouthAsia', 'Africa', 'Oceania', 'CentralAmerica'
+        )
+      ),
+      br_time_until_resultsreport_or_present_inmonths = case_when(
+        br_studystatus != 'Completed' ~ NA_real_,
+        were_results_reported ~ as.period(results_first_submitted_date - primary_completion_date) / months(1),
+        TRUE ~ as.period(ymd('20180501') - primary_completion_date) / months(1)
+      ),
+      br_censor_were_results_reported = as.numeric(were_results_reported),
+      br_were_results_reported_within_2year = case_when(
+        br_studystatus != 'Completed' ~ NA,
+        primary_completion_date >= ymd('20160501') ~ NA, # we only consider trials completed >=2 years ago (we should later change this to not be hard coded)
+        were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 24) ~ TRUE,
+        TRUE ~ FALSE
+      ),
+      br_were_results_reported_within_1year = case_when(
+        br_studystatus != 'Completed' ~ NA,
+        primary_completion_date >= ymd('20170501') ~ NA, # we only consider trials completed >=1 year ago
+        were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 12) ~ TRUE,
+        TRUE ~ FALSE
+      ),
       USA_only_facilities = case_when(
         all_countries == 'UnitedStates' ~ TRUE,
         is.na(all_countries) ~ NA,
-        TRUE ~ FALSE),
+        TRUE ~ FALSE
+      ),
       USA_any_facilities = case_when(
         is.na(all_countries) ~ NA,
         grepl(pattern = 'UnitedStates', x = all_countries) ~ TRUE,
-        TRUE ~ FALSE),
+        TRUE ~ FALSE
+      ),
       NorthAmerica_only_facilities = case_when(
         is.na(all_regions) ~ NA,
         all_regions == 'NorthAmerica' ~ TRUE,
-        TRUE ~ FALSE),
+        TRUE ~ FALSE
+      ),
       NorthAmerica_any_facilities = case_when(
         is.na(all_regions) ~ NA,
         grepl(pattern = 'NorthAmerica', x = all_regions) ~ TRUE,
-        TRUE ~ FALSE)) %>%
-    mutate(neither3regions = pmap_lgl(list(!!! rlang::syms(c("NorthAmerica","Europe","EastAsia"))),
-                                      function(...) ! any(sapply(list(...), function(i) i)))) %>% 
-    mutate(new_industry_any3_ref_nih = fct_relevel(industry_any3, 'NIH'),
-          new_industry_any3_ref_other = fct_relevel(industry_any3, 'Other')) %>%
-    mutate(new_industry_any2b_ref_usgovt = fct_relevel(industry_any2b, 'US.Govt'),
-          new_industry_any2b_ref_other = fct_relevel(industry_any2b, 'Other')) %>%
-    mutate(br_gni_lmic_hic_only = ifelse(br_gni_lmic_hic == 'LMIC and HIC', NA_character_, br_gni_lmic_hic)) %>%
-    mutate(br_gni_hic_text = case_when(
-      is.na(br_gni_hic) ~ NA_character_,
-      br_gni_hic ~ 'IncludesHIC',
-      ! br_gni_hic ~ 'OnlyLMIC'
-    )) %>%
+        TRUE ~ FALSE
+      ),
+      neither3regions = pmap_lgl(
+        list(!!! rlang::syms(c("NorthAmerica", "Europe", "EastAsia"))),
+        function(...) ! any(sapply(list(...), function(i) i))
+      ),
+      new_industry_any3_ref_nih = fct_relevel(industry_any3, 'NIH'),
+      new_industry_any3_ref_other = fct_relevel(industry_any3, 'Other'),
+      new_industry_any2b_ref_usgovt = fct_relevel(industry_any2b, 'US.Govt'),
+      new_industry_any2b_ref_other = fct_relevel(industry_any2b, 'Other'),
+      br_gni_lmic_hic_only = ifelse(
+        br_gni_lmic_hic == 'LMIC and HIC', 
+        NA_character_, 
+        br_gni_lmic_hic
+      ),
+      br_gni_hic_text = case_when(
+        is.na(br_gni_hic) ~ NA_character_,
+        br_gni_hic ~ 'IncludesHIC',
+        ! br_gni_hic ~ 'OnlyLMIC'
+      ),
+      br_phase4_ref_ph3 = fct_relevel(br_phase4, 'Phase 2/3-3'),
+      br_phase4_ref_ph1 = fct_relevel(br_phase4, 'Phase 1'),
+      number_of_regions = 1 + str_count(all_regions, ";"),
+      new_num_countries = Hmisc::cut2(num_countries, c(1, 2, 3, Inf)),
+      year_trial = year(study_first_submitted_date)
+    ) %>%
     left_join(fdaaa_tracker_data,
-              by = c('nct_id' = 'fdaaatracker_registry_id')) %>%
-    mutate(br_phase4_ref_ph3 = fct_relevel(br_phase4, 'Phase 2/3-3'),
-          br_phase4_ref_ph1 = fct_relevel(br_phase4, 'Phase 1')) %>%
-    mutate(number_of_regions = 1 + str_count(all_regions, ";")) %>%
-    mutate(year_trial = year(study_first_submitted_date)) 
+              by = c('nct_id' = 'fdaaatracker_registry_id'))
   
   return(full_gi_df)
 }
@@ -411,445 +465,149 @@ full_gi_df <- add_additional_columns(joined_df)
 # FREQUENCY TABLES and CHI-SQUARE ANALYSIS					       
 							       
 ####################################	
-                     
-# create function get_freqs for p-values and frequency tables
-# main_cat = variable we are looking at (i.e primary purpose)
-# df = full_gi_df in this case but columns (i.e. "region") each time it's passed in
-# col_comparison = different variable we want ot compare on (in table 1 it's time bin, in table2 it's industry)
-# treat_as_csv = FALSE means that we are going to treat the row as if it's a list of variables like in a CSV. 
-# If you call the get_freqs function without specifying, the default is FALSE meaning it won't treat it as a CSV
-               
-get_freqs <- function(main_cat, df, col_comparisons, treat_as_csv = FALSE) {
-
-#if you do have a treat_as_csv (such as in regions, it loops and finds all the unique values and counts it for each of the region). 
-#If we say FALSE or we don't say anything when we call get_freq, lines 515-522 are not executed and 523-526 is executed.
-  if (treat_as_csv) {
-    uniques <- c(NA)
-    for (val in na.omit(df$var)) {
-      for (str in strsplit(val, ";")) {
-        uniques <- c(uniques, trimws(str))
-      }
-    }
-    uniques <- unique(uniques)
+format_p_val <- function(p_val) {
+  if (is.nan(p_val)) {
+    return("-")
+  } else if (p_val < 0.0001) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "****"))
+  } else if (p_val < 0.001) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "***"))
+  } else if (p_val < 0.01) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "**"))
+  } else if (p_val < 0.05) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "*"))
   } else {
-#takes out NAs in all rows
-    uniques <- df$var
+    return(paste0(format(round(p_val, 3), nsmall = 3), ""))
   }
-
-# all_rows initializes a variables to be all the rows (i.e. randomization, masking, disease type, etc.) and we will use it to populate across each row
-# category variable refers to all outputs (i.e. Africa, two or more, NIH, etc.)
-# Here we are either counting if a category event (i.e. Africa) occurs in the cell at all AND counting each time it matches the cell exactly
-  all_rows <- c()
-  for (category in unique(uniques)) {
-    row <- c(main_cat)
-    if (is.na(category)) {
-      row <- c(row, "Missing")
-      row <- c(row, length(which(is.na(df$var))))
-    } else if (treat_as_csv) {
-      row <- c(row, category)
-      row <- c(row, length(which(str_count(df$var, category) >= 1)))
-    } else {
-      row <- c(row, category)
-      row <- c(row, length(which(df$var == category)))
-    }
-
-# Counts all the rows that are not NA, ie. this is the column for total N in Table 1
-    if (is.na(category)) {
-      row <- c(row, length(df$var))
-    } else {
-      row <- c(row, length(which(!is.na(df$var))))
-    }
-    
-    
-# Loop through each of the col_comparisons (i.e. bintimes) what we just did above for the totals. For example, we count the 
-# number of times when both category: "phase 1" and cc: "2007-2012" are true.
-for (cc in col_comparisons) {
-      if (is.na(category)) {
-        row <- c(row, length(which(is.na(df$var) & df$col == cc)))
-      } else if (treat_as_csv) {
-        row <- c(row, length(which(str_count(df$var, category) >= 1 & df$col == cc)))
-      } else {
-        row <- c(row, length(which(df$var == category & df$col == cc)))
-      }
-# total count of everything in that bin where the variable is not NA. This number should be the same for every category
-      
-      if (is.na(category)) {
-        row <- c(row, length(which(df$col == cc)))
-      } else {
-        row <- c(row, length(which(!is.na(df$var) & df$col == cc)))
-      }
-    }
-
-# Find total percentage of each category (i.e. how many phase 1 trials occured across all bins) 
-    row <- c(row, round(100 * as.numeric(row[3]) / as.numeric(row[4]), 1))
-
-# Now we will do chi squre  by computing two chi square values. One for the category and one for the main_cat  
-row_chi_sq <- c()
-    
-# marginal_indexes are the indexes that the *counts* are in that is first created to be empty and gets populated in the next line  
-  marginal_indexes <- c()
-  for (i in 1:length(col_comparisons)) {
-    marginal_indexes <- c(marginal_indexes, 3 + (i * 2))
-  }
-for (i in marginal_indexes) {
-      row_chi_sq <- c(row_chi_sq, row[i])
-      row_chi_sq <- c(row_chi_sq, as.numeric(row[i + 1]) - as.numeric(row[i]))
-      row <- c(row, round(100 * as.numeric(row[i]) / as.numeric(row[i + 1]), 1))
-    }
-# converts previous list of 4 numbers into a 2x2 matrix to do first chi square on testing each specific subcategory
-    chi_sq_res <- chisq.test(apply(matrix(row_chi_sq, nrow = 2, ncol = 2), c(1,2), as.numeric))
-    row <- c(row, chi_sq_res$p.value, NA)
-
-    all_rows <- c(all_rows, row)
-  }
-
-  num_cols <- 7 + (3 * length(col_comparisons))
-  output_matrix <- matrix(all_rows, ncol = num_cols, byrow = TRUE)
-
-# Chi square on the entire category. For example, this would test the null hypothesis that 2003-2008 bin had no relationship with phase.
-# compare this to the previous chi square that tested the null hypothesis that 2003-2008 bin had no relationship with if it was phase 1 or not phase 1 
-# This can't be done on any variable that is "treat_as_csv"
-  if(!treat_as_csv) {
-    chi_sq_matrix <- output_matrix[output_matrix[, 2] != "Missing", ]
-    try(all_chi_sq <- chisq.test(apply(chi_sq_matrix[, marginal_indexes], c(1,2), as.numeric)), silent = TRUE)
-    try(output_matrix[,num_cols] <- all_chi_sq$p.value, silent = TRUE)
-  }
-  return(output_matrix)
 }
-							       
-#Adding in Rows 			      
-do_table_analysis <- function(already_mutated, cols, include_disease) {
+
+
+get_freq_table <- function(group_name, input_df, col1_name, col2_name, display_group_pval = TRUE) {
+  df <- input_df %>%
+    mutate(var1 = !! rlang::sym(col1_name)) %>%
+    mutate(var2 = !! rlang::sym(col2_name))
   
-  #Primary Purpose                   
-  pp <- get_freqs("Primary Purpose", already_mutated %>% mutate(var = new_primary_purpose_treatment), cols)
-  
-  #Phase
-  phase <- get_freqs("Phase", already_mutated %>% mutate(var = br_phase4_ref_ph3), cols)
-  
-  #Study Arms
-  study_arms <- get_freqs("Study Arms", already_mutated %>% mutate(var = 
-    ifelse(!is.na(number_of_arms) & number_of_arms >= 3, "Three or more", 
-    ifelse(!is.na(number_of_arms) & number_of_arms == 2, "Two", 
-    ifelse(!is.na(number_of_arms) & number_of_arms == 1, "One", NA)))), cols)
+  tbl <- table(df$var1, df$var2, useNA = c("always"))
+  tbl <- tbl[, colnames(tbl) %in% as.character(na.omit(colnames(tbl)))]
+  rownames(tbl) <- c(as.character(na.omit(rownames(tbl))), "Missing")
+  new_df <- data.frame(
+    group = group_name,
+    name = rownames(tbl)
+  )
 
-  #Masking
-  masking <- get_freqs("Masking", already_mutated %>% mutate(var = br_masking2), cols)
-  
-  #Randomized
-  randomized <- get_freqs("Randomized", already_mutated %>% mutate(var = br_allocation), cols)
-
-  #Number of enrollees
-  enrollment <- get_freqs("Enrollment Number", already_mutated %>% mutate (var = 
-    ifelse(!is.na(enrollment) & enrollment > 1000, "> 1000", 
-    ifelse(!is.na(enrollment) & enrollment >=500 & enrollment <=1000, "500 – 1000", 
-    ifelse(!is.na(enrollment) & enrollment >=100 & enrollment <500, "100 – 499", 
-    ifelse(!is.na(enrollment) & enrollment < 100, "< 100", NA))))), cols)
-  
-  #Had Data Monitoring Committe, code is slightly different because this is a boolean column (True/False)
-  has_dmc <- get_freqs("Had Data Monitoring Committee", already_mutated %>% mutate(var = 
-    ifelse(!is.na(has_dmc) & has_dmc, "Yes", ifelse(!is.na(has_dmc), "No", NA))), cols)
-
-  #Centers, this is the only one that has TRUE for "treat_as_csv"
-  regions <- get_freqs("Region", already_mutated %>% mutate(var = all_regions), cols, TRUE)
- 
-  #Number of Countries
-  num_countries <- get_freqs("Number of Countries", already_mutated %>% mutate(var = 
-    ifelse(!is.na(num_countries) & num_countries >= 3, "Three or more", 
-    ifelse(!is.na(num_countries) & num_countries == 2, "Two", 
-    ifelse(!is.na(num_countries) & num_countries == 1, "One", NA)))), cols)
-
-  #Number of Regions
-  num_regions <- get_freqs("Number of Regions", already_mutated %>% mutate(var = 
-    ifelse(!is.na(num_regions) & num_regions >= 3, "Three or more", 
-    ifelse(!is.na(num_regions) & num_regions == 2, "Two", 
-    ifelse(!is.na(num_regions) & num_regions == 1, "One", NA)))), cols)
-
-  #Number of Facilities
-  num_facilities <- get_freqs("Number of Facilities", already_mutated %>% mutate(var = 
-    ifelse(!is.na(num_facilities) & num_facilities >10, "More than Ten",
-    ifelse(!is.na(num_facilities) & num_facilities >= 3 & num_facilities <=10, "Three to Ten", 
-    ifelse(!is.na(num_facilities) & num_facilities == 2, "Two", 
-    ifelse(!is.na(num_facilities) & num_facilities == 1, "One", NA))))), cols)
-
-  #Sponsor Type
-  sponsor <- get_freqs("Sponsor Type", already_mutated %>% mutate(var = industry_any2b), cols)
-
-  #Were Results Reported? code is slightly different because this is a boolean column (True/False)
-  reported <- get_freqs("Were Results Reported", already_mutated %>% mutate(var = 
-    ifelse(!is.na(were_results_reported) & were_results_reported, "Yes", ifelse(!is.na(were_results_reported), "No", NA))), cols)
-
-         #Study Status
-          study_status <- get_freqs("Study Status", already_mutated %>% mutate(var = br_studystatus), cols)
-
-          #LMIC vs HMIC
-           hmic_vs_lmic <- get_freqs("LMIC and HIC", already_mutated %>% mutate(var = br_gni_lmic_hic_only), cols)
-
-
-      #TYPE OF INTERVENTION
-        all_interventions <- rbind(
-              #DRUG INTERVENTION
-              get_freqs("Drug Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_drug) & interv_drug, "Yes", ifelse(!is.na(interv_drug), "No", NA))), cols),
-              #OTHER INTERVENTION
-              get_freqs("Other Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_other) & interv_other, "Yes", ifelse(!is.na(interv_other), "No", NA))), cols),
-              #DEVICE INTERVENTION
-              get_freqs("Device Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_device) & interv_device, "Yes", ifelse(!is.na(interv_device), "No", NA))), cols),
-              #PROCEDURE INTERVENTION
-              get_freqs("Procedure Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_procedure) & interv_procedure, "Yes", ifelse(!is.na(interv_procedure), "No", NA))), cols),
-              #BEHAVIORAL INTERVENTION
-              get_freqs("Behavioral Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_behavioral) & interv_behavioral, "Yes", ifelse(!is.na(interv_behavioral), "No", NA))), cols),
-              #BIOLOGICAL INTERVENTION
-              get_freqs("Biological Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_biological) & interv_biological, "Yes", ifelse(!is.na(interv_biological), "No", NA))), cols),
-              #DIETARY INTERVENTION
-              get_freqs("Dietary Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_dietary) & interv_dietary, "Yes", ifelse(!is.na(interv_dietary), "No", NA))), cols),
-              #RADIATION INTERVENTION
-              get_freqs("Radiation Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_radiation) & interv_radiation, "Yes", ifelse(!is.na(interv_radiation), "No", NA))), cols),
-              #DIAGNOSTIC INTERVENTION
-              get_freqs("Diagnostic Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_diagnostic) & interv_diagnostic, "Yes", ifelse(!is.na(interv_diagnostic), "No", NA))), cols),
-              #GENETIC INTERVENTION
-              get_freqs("Genetic Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_genetic) & interv_genetic, "Yes", ifelse(!is.na(interv_genetic), "No", NA))), cols),
-              #COMBINATION INTERVENTION
-              get_freqs("Combination Intervention", already_mutated %>% mutate(var = 
-                ifelse(!is.na(interv_combination) & interv_combination, "Yes", ifelse(!is.na(interv_combination), "No", NA))), cols))
-              
-
-  #INFECTIONS ANY
-  all_diseases <- rbind(
-    get_freqs("Any Infection", already_mutated %>% mutate(var = 
-      ifelse(!is.na(infection_any) & infection_any, "Yes", ifelse(!is.na(infection_any), "No", NA))), cols),
-    #HELMINTHS
-    get_freqs("Helminth Infection", already_mutated %>% mutate(var = 
-      ifelse(!is.na(infection_helminth) & infection_helminth, "Yes", ifelse(!is.na(infection_helminth), "No", NA))), cols),
-    #INTESTINES
-    get_freqs("Intestinal Infection", already_mutated %>% mutate(var = 
-      ifelse(!is.na(infection_intestines) & infection_intestines, "Yes", ifelse(!is.na(infection_intestines), "No", NA))), cols),
-    #HEPATITIS
-    get_freqs("Heptatitis", already_mutated %>% mutate(var = 
-      ifelse(!is.na(infection_hepatitis) & infection_hepatitis, "Yes", ifelse(!is.na(infection_hepatitis), "No", NA))), cols),
-  #NEOPLASIA DISEASE
-    get_freqs("Any Neoplasia", already_mutated %>% mutate(var = 
-      ifelse(!is.na(neoplasia_disease) & neoplasia_disease, "Yes", ifelse(!is.na(neoplasia_disease), "No", NA))), cols),
-    #PRIMARY
-    get_freqs("Primary Neoplasia", already_mutated %>% mutate(var = 
-      ifelse(!is.na(neoplasia_primary) & neoplasia_primary, "Yes", ifelse(!is.na(neoplasia_primary), "No", NA))), cols),
-    #METASTASIS
-    get_freqs("Metastatic Neoplasia", already_mutated %>% mutate(var = 
-      ifelse(!is.na(neoplasia_metastasis) & neoplasia_metastasis, "Yes", ifelse(!is.na(neoplasia_metastasis), "No", NA))), cols),
-  #ABDOMINAL HERNIA
-    get_freqs("Abdominal Hernia", already_mutated %>% mutate(var = 
-      ifelse(!is.na(abdominal_hernia) & abdominal_hernia, "Yes", ifelse(!is.na(abdominal_hernia), "No", NA))), cols),
-  #APPENDICITIS
-    get_freqs("Abdominal Hernia", already_mutated %>% mutate(var = 
-      ifelse(!is.na(abdominal_hernia) & abdominal_hernia, "Yes", ifelse(!is.na(abdominal_hernia), "No", NA))), cols),
-  #CIRRHOSIS
-    get_freqs("Appendicitis", already_mutated %>% mutate(var = 
-      ifelse(!is.na(appendicitis) & appendicitis, "Yes", ifelse(!is.na(appendicitis), "No", NA))), cols),
-  #DIVERTICULAR DISEASE
-    get_freqs("Cirrhosis", already_mutated %>% mutate(var = 
-      ifelse(!is.na(cirrhosis) & cirrhosis, "Yes", ifelse(!is.na(cirrhosis), "No", NA))), cols),
-  #FECAL DIVERSION
-    get_freqs("Diverticular Disease", already_mutated %>% mutate(var = 
-      ifelse(!is.na(diverticular_disease) & diverticular_disease, "Yes", ifelse(!is.na(diverticular_disease), "No", NA))), cols),
-  #FOREIGN BODY
-    get_freqs("Fecal Diversion", already_mutated %>% mutate(var = 
-      ifelse(!is.na(fecal_diversion) & fecal_diversion, "Yes", ifelse(!is.na(fecal_diversion), "No", NA))), cols),
-  #FUNCTIONAL DISORDER
-    get_freqs("Foreign Body", already_mutated %>% mutate(var = 
-      ifelse(!is.na(foreign_body) & foreign_body, "Yes", ifelse(!is.na(foreign_body), "No", NA))), cols),
-  #GALLSTONES
-    get_freqs("Gallstones", already_mutated %>% mutate(var = 
-      ifelse(!is.na(gallstones) & gallstones, "Yes", ifelse(!is.na(gallstones), "No", NA))), cols),
-  #GERD
-    get_freqs("GERD", already_mutated %>% mutate(var = 
-      ifelse(!is.na(gerd) & gerd, "Yes", ifelse(!is.na(gerd), "No", NA))), cols),
-  #HEMORRHOIDS
-    get_freqs("Hemorhoids", already_mutated %>% mutate(var = 
-      ifelse(!is.na(hemorrhoids) & hemorrhoids, "Yes", ifelse(!is.na(hemorrhoids), "No", NA))), cols),
-  #HYPOXIC DISEASE
-    get_freqs("Hypoxic Disease", already_mutated %>% mutate(var = 
-      ifelse(!is.na(hypoxic) & hypoxic, "Yes", ifelse(!is.na(hypoxic), "No", NA))), cols),
-  #ILEUS
-    get_freqs("Ileus", already_mutated %>% mutate(var = 
-      ifelse(!is.na(ileus) & ileus, "Yes", ifelse(!is.na(ileus), "No", NA))), cols),
-  #IBD
-    get_freqs("Irritable Bowel Disease", already_mutated %>% mutate(var = 
-      ifelse(!is.na(ibd) & ibd, "Yes", ifelse(!is.na(ibd), "No", NA))), cols),
-  #MALABSORPTION
-    get_freqs("Malabsorptive Disease", already_mutated %>% mutate(var = 
-      ifelse(!is.na(malabsorptive) & malabsorptive, "Yes", ifelse(!is.na(malabsorptive), "No", NA))), cols),
-  #MOTILITY
-    get_freqs("Motility Disease", already_mutated %>% mutate(var = 
-      ifelse(!is.na(motility) & motility, "Yes", ifelse(!is.na(motility), "No", NA))), cols),
-  #NAFLD/NASH
-    get_freqs("NALFD or NASH", already_mutated %>% mutate(var = 
-      ifelse(!is.na(nafld_nash) & nafld_nash, "Yes", ifelse(!is.na(nafld_nash), "No", NA))), cols),
-  #NONSPECIFIC
-    get_freqs("Nonspecific", already_mutated %>% mutate(var = 
-      ifelse(!is.na(nonspecific) & nonspecific, "Yes", ifelse(!is.na(nonspecific), "No", NA))), cols),
-  #PANCREATITIS
-    get_freqs("Pancreatitis", already_mutated %>% mutate(var = 
-      ifelse(!is.na(pancreatitis) & pancreatitis, "Yes", ifelse(!is.na(pancreatitis), "No", NA))), cols),
-  #TRANSPLANT
-    get_freqs("Transplant", already_mutated %>% mutate(var = 
-      ifelse(!is.na(transplant) & transplant, "Yes", ifelse(!is.na(transplant), "No", NA))), cols),
-  #ULCERATIVE DISEASE
-    get_freqs("Ulcerative Disease", already_mutated %>% mutate(var = 
-      ifelse(!is.na(ulcerative_disease) & ulcerative_disease, "Yes", ifelse(!is.na(ulcerative_disease), "No", NA))), cols),
-  #OTHER
-    get_freqs("Other", already_mutated %>% mutate(var = 
-      ifelse(!is.na(other) & other, "Yes", ifelse(!is.na(other), "No", NA))), cols),
-
-#ANATOMIC LOCATION
-  #ESOPHAGUS
-    get_freqs("Esophagus", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_esophagus) & location_esophagus, "Yes", ifelse(!is.na(location_esophagus), "No", NA))), cols),
-  #STOMACH
-    get_freqs("Stomach", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_stomach) & location_stomach, "Yes", ifelse(!is.na(location_stomach), "No", NA))), cols),
-  #SMALL INTESTINE
-    get_freqs("Small Intestine", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_small_intestine) & location_small_intestine, "Yes", ifelse(!is.na(location_small_intestine), "No", NA))), cols),
-  #COLON/RECTUM
-    get_freqs("Colon/Rectum", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_colon_rectum) & location_colon_rectum, "Yes", ifelse(!is.na(location_colon_rectum), "No", NA))), cols),
-  #ANUS
-    get_freqs("Anus", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_anus) & location_anus, "Yes", ifelse(!is.na(location_anus), "No", NA))), cols),
-  #LIVER
-    get_freqs("Liver", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_liver) & location_liver, "Yes", ifelse(!is.na(location_liver), "No", NA))), cols),
-  #BILIARY TRACT
-    get_freqs("Biliary Tract", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_biliarytract) & location_biliarytract, "Yes", ifelse(!is.na(location_biliarytract), "No", NA))), cols),
-  #GALLBLADDER
-    get_freqs("Gallbladder", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_gallbladder) & location_gallbladder, "Yes", ifelse(!is.na(location_gallbladder), "No", NA))), cols),
-  #PANCREAS
-    get_freqs("Pancreas", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_pancreas) & location_pancreas, "Yes", ifelse(!is.na(location_pancreas), "No", NA))), cols),
-  #PERITONEUM
-    get_freqs("Peritoneum", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_peritoneum) & location_peritoneum, "Yes", ifelse(!is.na(location_peritoneum), "No", NA))), cols),
-  #NOT SPECIFIED 
-    get_freqs("Not Specified", already_mutated %>% mutate(var = 
-      ifelse(!is.na(location_notspecified) & location_notspecified, "Yes", ifelse(!is.na(location_notspecified), "No", NA))), cols))
-
-if(include_disease){
-  output <- rbind(
-          pp, 
-          phase, 
-	  enrollment, 
-	  reported, 
-	  masking, 
-	  randomized, 
-	  has_dmc, 
-	  study_arms, 
-	  hmic_vs_lmic, 
-	  num_facilities,
-          all_interventions,
-	  all_diseases,
-    	  sponsor)
-  } else {
-    output <- rbind(
-      all_interventions,
-    pp, 
-    phase, 
-      all_interventions,
-    study_arms, 
-    masking, 
-    enrollment, 
-    randomized, 
-    has_dmc, 
-    num_countries, 
-    regions, 
-    num_regions, 
-    num_facilities, 
-    sponsor, 
-      study_status,
-      hmic_vs_lmic, 
-    reported)
+  if (nrow(tbl) == 3 & "TRUE" %in% rownames(tbl)) {
+    new_df <- new_df %>% filter(name != "FALSE")
   }
-  return(output)
+
+  if (sum(tbl["Missing", ]) == 0) {
+    new_df <- new_df %>% filter(name != "Missing")
+  }
+
+  for (col in colnames(tbl)) {
+    col_total <- sum(tbl[, col])
+    missing_total <- tbl["Missing", col]
+    new_df <- new_df %>% 
+      mutate(!! rlang::sym(paste0(col)) := 
+        ifelse(name != "Missing",
+          paste0(tbl[, col], " (", round(100 * tbl[, col] / (col_total - missing_total), 0), "%)"),
+          paste0(tbl[, col], " (", round(100 * tbl[, col] / col_total, 0), "%)")
+        )
+      )
+  }
+
+  new_df$row_p_val <- lapply(new_df$name, function(name) {
+    curr_row <- tbl[as.character(name), ]
+    if (name == "Missing") {
+      other_rows <- colSums(tbl) - curr_row
+    } else {
+      other_rows <- colSums(tbl) - tbl["Missing", ] - curr_row
+    }
+    p_val <- chisq.test(rbind(curr_row, other_rows))$p.value
+    return(format_p_val(p_val))
+  })
+
+  if (display_group_pval) {
+    tbl <- tbl[!rownames(tbl) %in% c("Missing"), ]
+    new_df <- new_df %>% mutate(group_p_val = format_p_val(chisq.test(tbl)$p.value))
+  } else {
+    new_df <- new_df %>% mutate(group_p_val = "-")
+  }
+
+  return(new_df)
+}
+
+#Adding in Rows 			      
+do_table_analysis <- function(df, cols) {                
+  pp <- get_freq_table("Primary Purpose", df, "new_primary_purpose_treatment", cols)
+  phase <- get_freq_table("Phase", df, "br_phase4_ref_ph3", cols)
+  study_arms <- get_freq_table("Study Arms", df, "new_arms", cols)
+  masking <- get_freq_table("Masking", df, "br_masking2", cols)
+  randomized <- get_freq_table("Randomized", df, "br_allocation", cols)
+  enrollment <- get_freq_table("Enrollment Number", df, "new_enroll", cols)
+  has_dmc <- get_freq_table("Had Data Monitoring Committee", df, "has_dmc", cols)
+  num_countries <- get_freq_table("Number of Countries", df, "new_num_countries", cols)
+  num_regions <- get_freq_table("Number of Regions", df, "new_num_regions", cols)
+  num_facilities <- get_freq_table("Number of Facilities", df, "new_num_facilities", cols)
+  sponsor <- get_freq_table("Sponsor Type", df, "industry_any2b", cols)
+  reported <- get_freq_table("Were Results Reported", df, "were_results_reported", cols)
+  study_status <- get_freq_table("Study Status", df, "br_studystatus", cols)
+  hmic_vs_lmic <- get_freq_table("LMIC and HIC", df, "br_gni_lmic_hic_only", cols)
+
+  regions_na <- get_freq_table("Region-NorthAmerica", df, "NorthAmerica", cols, FALSE)
+  regions_europe <- get_freq_table("Region-Europe", df, "Europe", cols, FALSE)
+  regions_east_asia <- get_freq_table("Region-EastAsia", df, "EastAsia", cols, FALSE)
+  regions_other <- get_freq_table("Region-Other", df, "neither3regions", cols, FALSE)
+
+  interventions <- do.call(rbind, lapply(cols_interventions, function(i) {
+    get_freq_table(i, full_gi_df, i, cols)
+  }))
+
+  diseases <- do.call(rbind, lapply(cols_disease, function(i) {
+    get_freq_table(i, full_gi_df, i, cols)
+  }))
+
+  locations <- do.call(rbind, lapply(cols_location, function(i) {
+    get_freq_table(i, full_gi_df, i, cols)
+  }))
+
+  total <- rbind(
+    pp,
+    phase,
+    study_arms,
+    masking,
+    randomized,
+    enrollment,
+    has_dmc,
+    regions_na,
+    regions_europe,
+    regions_east_asia,
+    regions_other,
+    num_countries,
+    num_regions,
+    num_facilities,
+    sponsor,
+    reported,
+    study_status,
+    hmic_vs_lmic,
+    interventions,
+    diseases,
+    locations
+  )
+
+  return(total)
 }
 
 
 #------TABLE 1 SIMILAR TO OPHTHO TRIAL------# 
 #-----STRATIFIED BY YEAR USING BIN--------#                    
-table1 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = bintime), c("2007_2012", "2013_2018"), TRUE)) 
-y <- table1 %>% 
-  # filter(V2 != "Missing" | V3 != 0) %>%
-  filter(V2 != "No") %>%
-  mutate(V12 = as.numeric(levels(V12))[V12]) %>%
-  mutate(V13 = as.numeric(levels(V13))[V13]) %>%
-  mutate(
-    Name = V1,
-    Type = ifelse(V2 == "Yes", "", as.character(V2)),
-    Total = paste0(V3, " (", V9, "%)"),
-    Years_2007_2013 = paste0(V5, " (", V10, "%)"),
-    Years_2013_2018 = paste0(V7, " (", V11, "%)"),
-    Row_PVal = case_when(
-                V12 < 0.0001 ~ paste0(format(round(as.numeric(V12), 3), nsmall = 3), "***"),
-                V12 < 0.001 ~ paste0(format(round(as.numeric(V12), 3), nsmall = 3), "***"),
-                V12 < 0.01 ~ paste0(format(round(as.numeric(V12), 3), nsmall = 3), "**"),
-                V12 < 0.05 ~ paste0(format(round(as.numeric(V12), 3), nsmall = 3), "*"),
-                TRUE ~ as.character(format(round(as.numeric(V12), 3), nsmall = 3))
-            ),
-    Group_PVal = ifelse(as.numeric(V12) == as.numeric(V13), "", case_when(
-                V13 < 0.0001 ~ paste0(format(round(as.numeric(V13), 3), nsmall = 3), "***"),
-                V13 < 0.001 ~ paste0(format(round(as.numeric(V13), 3), nsmall = 3), "***"),
-                V13 < 0.01 ~ paste0(format(round(as.numeric(V13), 3), nsmall = 3), "**"),
-                V13 < 0.05 ~ paste0(format(round(as.numeric(V13), 3), nsmall = 3), "*"),
-                TRUE ~ as.character(format(round(as.numeric(V13), 3), nsmall = 3))
-            ))) %>%
-  select(Name, Type, Total, Years_2007_2013, Years_2013_2018, Row_PVal, Group_PVal)
-
+table1 <- do_table_analysis(full_gi_df, "bintime")
 
 #------TABLE 2 SIMILAR TO OPHTHO TRIAL------# 
-#-----STRATIFIED BY SPONSORSHIP--------#                    
-table2 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = industry_any2b), c("Industry", "US.Govt", "Other"), TRUE))
-colnames(table2) <- c(
-  "Trial Characteristic", 
-  "Value", 
-  "Total Number of Rows Equal to Value", 
-  "Total Number", 
-  "Total Value for Industry", 
-  "Total for Industry", 
-  "Total Value for US.Govt", 
-  "Total for US.Govt", 
-  "Total Value for Other", 
-  "Total for Other", 
-  "Percentage of Total", 
-  "Percentage of Industry", 
-  "Percentage of US.Govt", 
-  "Percentage of Other", 
-  "p-value for row", 
-  "p-value for trial characteristic")
+#-----STRATIFIED BY SPONSORSHIP--------#        
+table2 <- do_table_analysis(full_gi_df, "industry_any2b")            
 
-#-------UNIVARIATE ANALYSIS--------#        
-table3 <- as.data.frame(do_table_analysis(full_gi_df %>% mutate(col = early_discontinuation), c(TRUE, FALSE), TRUE))
-colnames(table3) <- c(
-  "Trial Characteristic", 
-  "Value", 
-  "Total Number of Rows Equal to Value", 
-  "Total Number", 
-  "Total Value of Discontinued", 
-  "Total for Discontinued", 
-  "Total Value of Study Completed", 
-  "Total for Study Completed", 
-  "Percentage of Total", 
-  "Percentage of Discontinued", 
-  "Percentage of Completed Studies", 
-  "p-value for row", 
-  "p-value for trial characteristic")
+#-------UNIVARIATE ANALYSIS--------#  
+table3 <- do_table_analysis(full_gi_df, "early_discontinuation")
 
 
 ######################
@@ -934,36 +692,36 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
   # Compute the year-over-year growth % for each sub-category, then take the average of all of
   # those over the observed years
   aagr <- combined %>%
-      mutate_at(vars(-year_trial), 
-                function(x) (x - lag(x))/lag(x)) %>%
-      summarise_at(vars(-year_trial), 
-                   function(x) mean(x, na.rm = TRUE)) %>%
-      t()
+    mutate_at(vars(-year_trial), 
+      function(x) (x - lag(x))/lag(x)) %>%
+    summarise_at(vars(-year_trial), 
+      function(x) mean(x, na.rm = TRUE)) %>%
+    t()
 
   # Compound growth rate, taken from Brandon's code
   # Just computes normal compound growth rate, i.e., ((finish / start) ^ (1 / num_years)) - 1
   cagr <- combined %>%
     summarise_at(vars(-year_trial),
-                 function(x) ((last(x)/first(x))^ (1/(length(x) - 1))) - 1) %>%
+      function(x) ((last(x)/first(x))^ (1/(length(x) - 1))) - 1) %>%
     t()
 
   # Computes Kendall-Mann p-values for each time series
   kendall_mann <- combined %>%
     summarise_at(vars(-year_trial), 
-                 function(x) Kendall::MannKendall(x)$sl) %>%
+      function(x) Kendall::MannKendall(x)$sl) %>%
     t()
 
   # Corrects for multiple comparisons problem
   bonferroni_kendall <- combined %>%
     summarise_at(vars(-year_trial), 
-                 function(x) ((num_comparisons - 1)/2) * Kendall::MannKendall(x)$sl) %>% 
+      function(x) ((num_comparisons - 1)/2) * Kendall::MannKendall(x)$sl) %>% 
     Reduce(f = cbind) %>%
     t()
 
   # ordinary least squares
   ols <- combined %>%
     summarise_at(vars(-year_trial), 
-                 function(x) summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
+      function(x) summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
     t()
 
   # To visualize linear model, run:
@@ -972,7 +730,7 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
   # correcting Multiple comparisons problem, same as in Kendall-Mann 
   bonferroni_ols <- combined %>%
     summarise_at(vars(-year_trial), 
-                 function(x) ((num_comparisons - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
+      function(x) ((num_comparisons - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
     t()
 
   growth_statistics <- 
@@ -1020,62 +778,15 @@ ts_table <- rbind(
   do_time_series_analysis("reported", full_gi_df, num_comparisons, "were_results_reported"),
   do_time_series_analysis("infection_any", full_gi_df, num_comparisons, "infection_any"),
   do_time_series_analysis("br_gni_lmic_hic_only", full_gi_df, num_comparisons, "br_gni_lmic_hic_only"),
-  do_time_series_analysis("disease", full_gi_df %>% select(
-    year_trial, 
-    infection_helminth,
-    infection_intestines,
-    infection_hepatitis,
-    neoplasia_primary,
-    neoplasia_metastasis,
-    neoplasia_disease,
-    abdominal_hernia,
-    appendicitis,
-    cirrhosis,
-    diverticular_disease,
-    fecal_diversion,
-    foreign_body,
-    functional_disorder,
-    gallstones,
-    gerd,
-    hemorrhoids,
-    hypoxic,
-    ileus,
-    ibd, 
-    malabsorptive,
-    motility,
-    nafld_nash,
-    nonspecific,
-    pancreatitis,
-    transplant,
-    ulcerative_disease,
-    other), num_comparisons),
-  do_time_series_analysis("disease_location", full_gi_df %>% select(
-    year_trial,
-    location_esophagus,
-    location_stomach,
-    location_small_intestine,
-    location_colon_rectum,
-    location_anus,
-    location_liver,
-    location_biliarytract,
-    location_gallbladder,
-    location_pancreas,
-    location_peritoneum,
-    location_notspecified), num_comparisons)
+  do_time_series_analysis("disease", full_gi_df %>% select(year_trial, cols_disease), num_comparisons),
+  do_time_series_analysis("disease_location", full_gi_df %>% select(year_trial, cols_location), num_comparisons)
 )
-
-
-
 
 #######################################
            
 #MULTIPLE IMPUTATION
            
 #######################################
-       
-library(dplyr)
-library(mice)
-library(tidyverse)
 
 # Set factor variables
 micedata <- joined_df %>%
@@ -1102,7 +813,6 @@ micedata <- joined_df %>%
         cirrhosis = as.factor(cirrhosis),
         diverticular_disease = as.factor(diverticular_disease),
         fecal_diversion = as.factor(fecal_diversion),
-        foreign_body = as.factor(foreign_body),
         functional_disorder = as.factor(functional_disorder),
         gallstones = as.factor(gallstones),
         gerd = as.factor(gerd),
@@ -1219,7 +929,6 @@ methods[c(
       "cirrhosis",
       "diverticular_disease",
       "fecal_diversion",
-      "foreign_body",
       "functional_disorder",
       "gallstones",
       "gerd",
@@ -1290,7 +999,6 @@ predictor_vars <- c(
       "cirrhosis",
       "diverticular_disease",
       "fecal_diversion",
-      "foreign_body",
       "functional_disorder",
       "gallstones",
       "gerd",
@@ -1430,7 +1138,7 @@ imputed <- mice(
 do_logistic <- function(output_variable, imputed) {
   fmla <- as.formula(paste0(output_variable, " ~ 
     industry_any2b +
-    primary_purpose +
+    new_primary_purpose_treatment +
     br_phase4_ref_ph3 +
     new_enroll +
     br_masking2  +
@@ -1492,7 +1200,7 @@ do_logistic <- function(output_variable, imputed) {
   output <- imputed %>% 
     mice::complete("all") %>%
     lapply(function(i) {
-      add_additional_columns(i) %>% filter(br_trialduration >= 0)
+      add_additional_columns(i, TRUE) %>% filter(br_trialduration >= 0)
     }) %>%
     lapply(glm, formula = fmla, family = binomial(link = logit)) %>%
     pool()
@@ -1570,12 +1278,12 @@ do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 	output <- imputed %>% 
 	    mice::complete("all") %>%
 	    lapply(function(i) {
-	      add_additional_columns(i) %>% filter(br_trialduration > 0)
+	      add_additional_columns(i, TRUE) %>% filter(br_trialduration > 0)
 	    }) %>%
 	    lapply(function(i) {
 		    x <- model.matrix(
 		      ~ industry_any2b +
-		      ~ primary_purpose +
+		      ~ new_primary_purpose_treatment +
 		      ~ br_phase4_ref_ph3 +
 		      ~ new_enroll +
 		      ~ br_masking2  +
@@ -1598,7 +1306,6 @@ do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 		      cirrhosis +
 		      diverticular_disease +
 		      fecal_diversion +
-		      # foreign_body +
 		      functional_disorder +
 		      gallstones +
 		      gerd +

@@ -221,8 +221,8 @@ add_additional_columns <- function(input_df, recompute_dates = FALSE) {
       )
     ) %>%
     mutate(bintime = case_when(
-      year(study_first_submitted_date) <= 2012 ~ '2007_2012',
-      year(study_first_submitted_date) > 2012 ~ '2013_2018',
+      year(study_first_submitted_date) <= 2013 ~ '2007_2013',
+      year(study_first_submitted_date) > 2013 ~ '2014_2018',
       TRUE ~ NA_character_
     )) %>%
     mutate(nct_gi = TRUE)
@@ -1217,7 +1217,7 @@ do_logistic <- function(output_variable, imputed) {
   return(ret)
 }
 
-results_reported <- do_logistic("br_were_results_reported_within_2year", imputed)
+results_reported <- do_logistic("br_were_results_reported_within_1year", imputed)
 early_disc <- do_logistic("early_discontinuation_completed_vs_stoppedearly", imputed)
 
 ###############
@@ -1235,14 +1235,14 @@ save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
   plot <- ggsurvplot(survival_fit, 
             fun = 'event',
             data = filtered,
-            xlim = c(0,60), 
-            ylab = 'Cumulative incidence of\nearly discontinuation',
-            size = 1.5, 
+            xlim = c(0,60),
             censor.shape = 124,
             censor.size = 2.0,
             risk.table = TRUE,
-            pval = TRUE,
             pval.size = 10,
+            ylab = 'Cumulative incidence of\nearly discontinuation',
+            size = 1.5, 
+            pval = TRUE,
             break.x.by = 12) +
     xlab("Trial Duration (Months)")
     png(paste0(file_path, file_name), width = 1500, height = 1000)
@@ -1251,11 +1251,11 @@ save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
 }
 
 save_kaplain_meier(full_gi_df, "industry_any2b", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "br_phase4_ref_ph3", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "new_primary_purpose_treatment", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "br_allocation", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "br_singleregion4", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "new_num_facilities", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "br_phase4_ref_ph3", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "has_dmc", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "br_masking2", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "new_enroll", "~/Desktop/km_curves/")

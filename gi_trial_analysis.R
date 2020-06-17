@@ -134,10 +134,6 @@ raw_gi_list %>%
 
 # there should be no no duplicates in this file. 
 
-# how many reviews, etc
-raw_gi_list %>%
-  bcount(true_gi)
-
 #19296 (91%) coded 1, 499 ((2.4%) coded r, 1396 (6.6%) coded n
 
 # make sure there are only '1' or NA in the disease columns
@@ -165,6 +161,39 @@ joined_df <-
             Bigtbl,
             by = 'nct_id')
 
+joined_df <- joined_df %>%
+  mutate(
+    coder = as.factor(coder),
+    study_type = as.factor(study_type),
+    overall_status = as.factor(overall_status),
+    last_known_status = as.factor(last_known_status),
+    phase = as.factor(phase),
+    enrollment_type = as.factor(enrollment_type),
+    br_phase1 = as.factor(br_phase1),
+    br_phase2 = as.factor(br_phase2),
+    br_phase3 = as.factor(br_phase3),
+    br_phase4 = as.factor(br_phase4),
+    br_studystatus = as.factor(br_studystatus),
+    br_gni_lmic_hic = as.factor(br_gni_lmic_hic),
+    lead_agency_class = as.factor(lead_agency_class),
+    allocation = as.factor(allocation),
+    masking = as.factor(masking),
+    primary_purpose = as.factor(primary_purpose),
+    br_masking1 = as.factor(br_masking1),
+    br_masking2 = as.factor(br_masking2),
+    br_allocation = as.factor(br_allocation),
+    br_singleregion = as.factor(br_singleregion),
+    industry_any1 = as.factor(industry_any1),
+    industry_any1b = as.factor(industry_any1b),
+    industry_any2 = as.factor(industry_any2),
+    industry_any2b = as.factor(industry_any2b),
+    industry_any3 = as.factor(industry_any3),
+    lead_agency_class_govt = as.factor(lead_agency_class_govt),
+    numeric_study_first_submitted_date = as.numeric(as.Date(study_first_submitted_date) - as.Date("1970-01-01")),
+    numeric_start_date = as.numeric(as.Date(start_date) - as.Date("1970-01-01")),
+    numeric_results_first_submitted_date = as.numeric(as.Date(results_first_submitted_date) - as.Date("1970-01-01")),
+    numeric_primary_completion_date = as.numeric(as.Date(primary_completion_date) - as.Date("1970-01-01"))
+  )
 
 # Adds in all of the computed columns used by full_gi_df. This is factored
 # out into another function so that after imputation, we can re-compute
@@ -388,13 +417,13 @@ add_additional_columns <- function(input_df, recompute_dates = FALSE) {
       br_censor_were_results_reported = as.numeric(were_results_reported),
       br_were_results_reported_within_2year = case_when(
         br_studystatus != 'Completed' ~ NA,
-        primary_completion_date >= ymd('20160501') ~ NA, # we only consider trials completed >=2 years ago (we should later change this to not be hard coded)
+        primary_completion_date >= ymd('20160501') ~ NA,
         were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 24) ~ TRUE,
         TRUE ~ FALSE
       ),
       br_were_results_reported_within_1year = case_when(
         br_studystatus != 'Completed' ~ NA,
-        primary_completion_date >= ymd('20170501') ~ NA, # we only consider trials completed >=1 year ago
+        primary_completion_date >= ymd('20170501') ~ NA,
         were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 12) ~ TRUE,
         TRUE ~ FALSE
       ),
@@ -790,93 +819,12 @@ ts_table <- rbind(
 
 # Set factor variables
 micedata <- joined_df %>%
-    mutate(
-        primary_purpose = as.factor(primary_purpose),
-        industry_any2b = as.factor(industry_any2b),
-        industry_any3 = as.factor(industry_any3),
-        br_phase4 = as.factor(br_phase4),
-        interv_all_intervention_types = as.factor(interv_all_intervention_types),
-        br_allocation = as.factor(br_allocation),
-        br_masking2 = as.factor(br_masking2),
-        has_dmc = as.factor(has_dmc),
-        enrollment_type = as.factor(enrollment_type),
-        were_results_reported = as.factor(were_results_reported),
-              br_studystatus = as.factor(br_studystatus),
-        infection_any = as.factor(infection_any),
-        infection_helminth = as.factor(infection_helminth),
-        infection_intestines = as.factor(infection_intestines),
-        infection_hepatitis = as.factor(infection_hepatitis),
-        neoplasia_metastasis = as.factor(neoplasia_metastasis),
-        neoplasia_disease = as.factor(neoplasia_disease),
-        abdominal_hernia = as.factor(abdominal_hernia),
-        appendicitis = as.factor(appendicitis),
-        cirrhosis = as.factor(cirrhosis),
-        diverticular_disease = as.factor(diverticular_disease),
-        fecal_diversion = as.factor(fecal_diversion),
-        functional_disorder = as.factor(functional_disorder),
-        gallstones = as.factor(gallstones),
-        gerd = as.factor(gerd),
-        hemorrhoids = as.factor(hemorrhoids),
-        hypoxic = as.factor(hypoxic),
-        ileus = as.factor(ileus),
-        ibd = as.factor(ibd),
-        malabsorptive = as.factor(malabsorptive),
-        motility = as.factor(motility),
-        nafld_nash = as.factor(nafld_nash),
-        nonspecific = as.factor(nonspecific),
-        pancreatitis = as.factor(pancreatitis),
-        transplant = as.factor(transplant),
-        ulcerative_disease = as.factor(ulcerative_disease),
-        other = as.factor(other),
-        br_gni_lmic_hic = as.factor(br_gni_lmic_hic),
-      
-        location_esophagus = as.factor(location_esophagus),
-        location_stomach = as.factor(location_stomach),
-        location_small_intestine = as.factor(location_small_intestine),
-        location_colon_rectum = as.factor(location_colon_rectum),
-        location_anus = as.factor(location_anus),
-        location_liver = as.factor(location_liver),
-        location_biliarytract = as.factor(location_biliarytract),
-        location_gallbladder = as.factor(location_gallbladder),
-        location_pancreas = as.factor(location_pancreas),
-        location_peritoneum = as.factor(location_peritoneum),
-        location_notspecified = as.factor(location_notspecified),
-
-          interv_drug = as.factor(interv_drug),
-          interv_other = as.factor(interv_other),
-          interv_device = as.factor(interv_device),
-          interv_procedure = as.factor(interv_procedure),
-          interv_behavioral = as.factor(interv_behavioral),
-          interv_biological = as.factor(interv_biological),
-          interv_dietary = as.factor(interv_dietary),
-          interv_radiation = as.factor(interv_radiation),
-          interv_diagnostic = as.factor(interv_diagnostic),
-          interv_genetic = as.factor(interv_genetic),
-          interv_combination = as.factor(interv_combination),
-          numeric_study_first_submitted_date = as.numeric(as.Date(study_first_submitted_date) - as.Date("1970-01-01")),
-          numeric_start_date = as.numeric(as.Date(start_date) - as.Date("1970-01-01")),
-          numeric_results_first_submitted_date = as.numeric(as.Date(results_first_submitted_date) - as.Date("1970-01-01")),
-          numeric_primary_completion_date = as.numeric(as.Date(primary_completion_date) - as.Date("1970-01-01"))
-    ) %>%
-    select(-start_date, -completion_date, -results_first_submitted_date, -primary_completion_date)
-
-# set date variables by converting them into numbers "days since 1970", need to convert back out after we have imputed
-
-# Relevel to reference groups, picked reference group based on which group had the most, 
-# relevel can only be done for unordered factors, commented out ordered variables
-#full_gi_df$industry_any2b <- relevel(full_gi_df$industry_any2b, ref = "Other")
-#full_gi_df$br_phase4_ref_ph3 <- relevel(full_gi_df$br_phase4_ref_ph3, ref = "Phase 1/2-2")
-#full_gi_df$new_primary_purpose_treatment <- relevel(full_gi_df$new_primary_purpose_treatment, ref = "Treatment")
-#full_gi_df$interv_all_intervention_types <- relevel(full_gi_df$interv_all_intervention_types, ref = "Biological") #----this one has multiple categories in each separated by ;
-#full_gi_df$br_allocation <- relevel(full_gi_df$br_allocation, ref = "Randomized")
-#full_gi_df$br_masking2 <- relevel(full_gi_df$br_masking2, ref = "None")
-#full_gi_df$br_gni_lmic_hic_only <- relevel(full_gi_df$br_gni_lmic_hic_only, ref = "HIC Only")
-#full_gi_df$enrollment_type <- relevel(full_gi_df$enrollment_type, ref = "Actual")
-#full_gi_df$overall_status <- relevel(full_gi_df$overall_status, ref = "Completed")
-
-# Set random seed
-random_seed_num <- 3249
-set.seed(random_seed_num)
+    select(
+      -start_date, 
+      -completion_date, 
+      -results_first_submitted_date, 
+      -primary_completion_date
+    )
 
 # This number was originally set by Rubin, and 5 was believed to be enough. 
 # Since then, Bodner (2008), White et al. (2011) and Graham, Olchowski, 
@@ -910,135 +858,193 @@ predM <- init$predictorMatrix
 # For dichotomous variables, use logistic regression predictors, and for
 # categorical variables, use polytonomous regression
 # For continuous variables, use predictive mean matching by default 
-methods[c("industry_any2b", "br_phase4", "industry_any3", "primary_purpose", "br_gni_lmic_hic",
-      "interv_all_intervention_types","br_masking2","br_studystatus", "phase")] = "polyreg"
 methods[c(
-     "br_allocation",
-     "has_dmc", 
-     "enrollment_type",  
-      "were_results_reported", 
-      "infection_any",
-      "infection_helminth",
-      "infection_intestines",
-      "infection_hepatitis",
-      "neoplasia_primary",
-      "neoplasia_metastasis",
-      "neoplasia_disease",
-      "abdominal_hernia",
-      "appendicitis",
-      "cirrhosis",
-      "diverticular_disease",
-      "fecal_diversion",
-      "functional_disorder",
-      "gallstones",
-      "gerd",
-      "hemorrhoids",
-      "hypoxic",
-      "ileus",
-      "ibd", 
-      "malabsorptive",
-      "motility",
-      "nafld_nash",
-      "nonspecific",
-      "pancreatitis",
-      "transplant",
-      "ulcerative_disease",
-      "other",
-      "location_esophagus",
-      "location_stomach",
-      "location_small_intestine",
-      "location_colon_rectum",
-      "location_anus",
-      "location_liver",
-      "location_biliarytract",
-      "location_gallbladder",
-      "location_pancreas",
-      "location_peritoneum",
-      "location_notspecified")] = "logreg" 
+  "industry_any2b", 
+  "br_phase4", 
+  "industry_any3", 
+  "primary_purpose", 
+  "br_gni_lmic_hic",
+  "interv_all_intervention_types",
+  "br_masking2",
+  "br_studystatus", 
+  "phase")] = "polyreg"
 
+methods[c(
+  "br_allocation",
+  "has_dmc", 
+  "enrollment_type",  
+  "were_results_reported", 
+  "infection_any",
+  "infection_helminth",
+  "infection_intestines",
+  "infection_hepatitis",
+  "neoplasia_primary",
+  "neoplasia_metastasis",
+  "neoplasia_disease",
+  "abdominal_hernia",
+  "appendicitis",
+  "cirrhosis",
+  "diverticular_disease",
+  "fecal_diversion",
+  "functional_disorder",
+  "gallstones",
+  "gerd",
+  "hemorrhoids",
+  "hypoxic",
+  "ileus",
+  "ibd", 
+  "malabsorptive",
+  "motility",
+  "nafld_nash",
+  "nonspecific",
+  "pancreatitis",
+  "transplant",
+  "ulcerative_disease",
+  "other",
+  "location_esophagus",
+  "location_stomach",
+  "location_small_intestine",
+  "location_colon_rectum",
+  "location_anus",
+  "location_liver",
+  "location_biliarytract",
+  "location_gallbladder",
+  "location_pancreas",
+  "location_peritoneum",
+  "location_notspecified")] = "logreg" 
 
+methods[c(
+  "number_of_arms", 
+  "br_trialduration", 
+  "num_facilities", 
+  "num_regions", 
+  "num_countries",
+  "actual_duration", 
+  "numeric_study_first_submitted_date",
+  "numeric_start_date",
+  "numeric_results_first_submitted_date",
+  "numeric_primary_completion_date",
+  "enrollment")] = "cart"
 
 # Set all variables to 0 to begin with
 predM <- ifelse(predM < 0, 1, 0)
 
 # Variables which will be used for prediction
 predictor_vars <- c(
-      "industry_any2b", 
-      "industry_any3",
-      "br_phase4", 
+  all_disease_cols,
+  "numeric_study_first_submitted_date",
+  "numeric_start_date",
+  "numeric_results_first_submitted_date",
+  "numeric_primary_completion_date",
+  "study_type",
+  "overall_status",
+  "last_known_status", 
+  "phase",
   "enrollment",
-      "interv_all_intervention_types",
-  "num_facilities",
-  "all_regions", 
-  "num_regions", 
-  "num_countries",
-      "br_allocation",
-      "br_masking2",
-      "has_dmc",
+  "enrollment_type",
+  "target_duration",
   "number_of_arms",
- "br_trialduration", 
- "numeric_study_first_submitted_date",
- "numeric_start_date",
-
-
-
- #"new_first_submit",  #-- PROBLEM 
- #"completion_date",  
-      "enrollment_type",
-          "br_studystatus", 
-      "were_results_reported",
-      "infection_any",
-      "infection_helminth",
-      "infection_intestines",
-      "infection_hepatitis",
-      "neoplasia_primary",
-      "neoplasia_metastasis",
-      "neoplasia_disease",
-      "abdominal_hernia",
-      "appendicitis",
-      "cirrhosis",
-      "diverticular_disease",
-      "fecal_diversion",
-      "functional_disorder",
-      "gallstones",
-      "gerd",
-      "hemorrhoids",
-      "hypoxic",
-      "ileus",
-      "ibd", 
-      "malabsorptive",
-      "motility",
-      "nafld_nash",
-      "nonspecific",
-      "pancreatitis",
-      "transplant",
-      "ulcerative_disease",
-      "other",
- 
-      "location_esophagus",
-      "location_stomach",
-      "location_small_intestine",
-      "location_colon_rectum",
-      "location_anus",
-      "location_liver",
-      "location_biliarytract",
-      "location_gallbladder",
-      "location_pancreas",
-      "location_peritoneum",
-      "location_notspecified",
-      "primary_purpose",
-
-          "interv_drug",
-          "interv_other",
-          "interv_device",
-          "interv_procedure",
-          "interv_behavioral",
-          "interv_biological",
-          "interv_dietary",
-          "interv_radiation",
-          "interv_diagnostic",
-          "interv_genetic",
-          "interv_combination"
+  "number_of_groups",
+  "has_dmc",
+  "is_fda_regulated_device",
+  "is_fda_regulated_drug",
+  "br_trialduration",
+  "br_censor_earlydiscontinuation",
+  "num_facilities",
+  "num_countries",
+  "num_regions",
+  "con_other3",
+  "con_other5",
+  "con_other8",
+  "con_other10",
+  "reg_other3",
+  "reg_other4",
+  "reg_other5",
+  "br_gni_lmic_hic",
+  "UnitedStates",
+  "Germany",
+  "France",
+  "Canada",
+  "Japan",
+  "UnitedKingdom",
+  "Spain",
+  "Italy",
+  "China",
+  "Poland",
+  "RussianFederation",
+  "KoreaRepublicof",
+  "Belgium",
+  "Australia",
+  "Netherlands",
+  "Brazil",
+  "Hungary",
+  "India",
+  "Israel",
+  "Sweden",
+  "Africa",
+  "CentralAmerica",
+  "EastAsia",
+  "Europe",
+  "MiddleEast",
+  "NorthAmerica",
+  "Oceania",
+  "Other",
+  "SouthAmerica",
+  "SouthAsia",
+  "SoutheastAsia",
+  "number_of_nsae_subjects",
+  "number_of_sae_subjects",
+  "actual_duration",
+  "were_results_reported",
+  "excludes_65_and_over",
+  "excludes_18_and_under",
+  "any_collab_other",
+  "any_collab_industry",
+  "any_collab_nih",
+  "any_collab_usfed",
+  "lead_agency_class_govt",
+  "industry_any3",
+  "br_masking2",
+  "br_allocation",
+  "has_placebo",
+  "has_active_comparator",
+  "br_singleregion",
+  "interv_all_intervention_types",
+  "interv_all_interv_names",
+  "interv_all_interv_descriptions",
+  "interv_drug",
+  "interv_other",
+  "interv_device",
+  "interv_procedure",
+  "interv_behavioral",
+  "interv_biological",
+  "interv_dietary",
+  "interv_radiation",
+  "interv_diagnostic",
+  "interv_genetic",
+  "interv_combination",
+  "interv_combo1_behavioral",
+  "interv_combo1_device",
+  "interv_combo1_drugs_biologics_or_supplements",
+  "interv_combo1_other",
+  "interv_combo1_procedure",
+  "interv_combo2_behavioral",
+  "interv_combo2_device",
+  "interv_combo2_drugs_biologics_or_supplements",
+  "interv_combo2_other",
+  "interv_combo3_behavioral",
+  "interv_combo3_device_and_other",
+  "interv_combo3_drugs_biologics_or_supplements",
+  "allocation",
+  "masking",
+  "subject_masked",
+  "caregiver_masked",
+  "investigator_masked",
+  "outcomes_assessor_masked",
+  "primary_purpose",
+  "all_comparators",
+  "all_comp_num_arms",
+  "all_unique_comparators"
 )
 
 # Pick which factors should be involved in imputation. This is a well-known
@@ -1056,18 +1062,6 @@ predictor_vars <- c(
 # imputation model should include all variables of the analysis, plus those 
 # highly correlated with responses or explanatory variables". For this reason,
 # we've included all variables
-
-methods[c(
-  "number_of_arms", 
-  "br_trialduration", 
-  "num_facilities", 
-  "num_regions", 
-  "actual_duration", 
-  "numeric_study_first_submitted_date",
-  "numeric_start_date",
-  "numeric_results_first_submitted_date",
-  "numeric_primary_completion_date",
-  "enrollment")] = "cart"
 
 vars_to_predict <- c(
   "br_phase4",
@@ -1097,20 +1091,19 @@ vars_to_predict <- c(
 
 for (var in vars_to_predict) {
   for (var2 in predictor_vars) {
-    predM[var, var2] <- 1
+    predM[var2, var] <- 1
   }
   predM[var, var] <- 0
 }
 
 # We use multiple imputation using MICE. This is a set of multiple imputations for 
-# data that is MNAR. 
+# data that is MAR. 
 imputed <- mice(
     data = micedata, 
     method = methods, 
     predictorMatrix = predM, 
     m = num_imputations, 
     maxit = iterations, 
-    seed = random_seed_num,
     nnet.MaxNWts = 10000
 )
 
@@ -1200,37 +1193,32 @@ do_logistic <- function(output_variable, imputed) {
   output <- imputed %>% 
     mice::complete("all") %>%
     lapply(function(i) {
-      add_additional_columns(i, TRUE) %>% filter(br_trialduration >= 0)
+      add_additional_columns(i, TRUE) %>% 
+        filter(br_trialduration > 0)
     }) %>%
     lapply(glm, formula = fmla, family = binomial(link = logit)) %>%
     pool()
 
   cis <- confint(output)
 
-  for (name in attr(output$coefficients, "names")) {
-    number <- round(exp(as.numeric(output$coefficients[name])), 3)
-    low_ci <- round(exp(cis[name, 1]), 3)
-    hi_ci <- round(exp(cis[name, 2]), 3)
+  ret <- do.call(rbind, lapply(attr(output$coefficients, "names"), function(name) {
     p_val <- NA
-    try(p_val <- round(coef(summary(output))[name, "Pr(>|z|)"], 3), silent = TRUE)
-    if (!is.na(p_val)) {
-      if (p_val < 0.0001) {
-        p_val <- paste0(p_val, "****")
-      } else if (p_val < 0.001) {
-        p_val <- paste0(p_val, "***")
-      } else if (p_val < 0.01) {
-        p_val <- paste0(p_val, "**")
-      } else if (p_val < 0.05) {
-        p_val <- paste0(p_val, "*")
-      }
-    }
+    try(p_val <- format_p_val(coef(summary(output))[name, "Pr(>|z|)"]), silent = TRUE)
 
-    print(paste0(name, ": ", number, " (", low_ci, "-", hi_ci, "), p=", p_val))
-  }
+    data.frame(
+      variable = name,
+      aOR = round(exp(as.numeric(output$coefficients[name])), 3),
+      low_ci = round(exp(cis[name, 1]), 3),
+      hi_ci = round(exp(cis[name, 2]), 3),
+      p_val = p_val
+    )
+  }))
+
+  return(ret)
 }
 
-do_logistic("br_were_results_reported_within_2year", imputed)
-do_logistic("early_discontinuation_completed_vs_stoppedearly", imputed)
+results_reported <- do_logistic("br_were_results_reported_within_2year", imputed)
+early_disc <- do_logistic("early_discontinuation_completed_vs_stoppedearly", imputed)
 
 ###############
 		 
@@ -1278,7 +1266,8 @@ do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 	output <- imputed %>% 
 	    mice::complete("all") %>%
 	    lapply(function(i) {
-	      add_additional_columns(i, TRUE) %>% filter(br_trialduration > 0)
+	      add_additional_columns(i, TRUE) %>% 
+          filter(br_trialduration > 0)
 	    }) %>%
 	    lapply(function(i) {
 		    x <- model.matrix(
@@ -1363,33 +1352,33 @@ do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 
 	if (!do_lasso) {
 		output <- output %>% 
-		    lapply(coxph, formula = Surv(br_trialduration, br_censor_earlydiscontinuation) ~ .) %>%
-		    pool()
+      lapply(coxph, formula = Surv(br_trialduration, br_censor_earlydiscontinuation) ~ .) %>%
+      pool()
 
 		summary_table <- 
-		        summary(output, conf.int = TRUE, exponentiate = TRUE, conf.level = 0.95)
+		  summary(output, conf.int = TRUE, exponentiate = TRUE, conf.level = 0.95)
 
 		coef_table <- 
-		    summary_table %>%
-		    tibble::rownames_to_column('coxlevels') %>%
-		    dplyr::select(coxlevels, name = term, Estimate = estimate, `Std. Error` = std.error, `z value` = statistic, `Pr(>|z|)` = p.value)
+		  summary_table %>%
+		  tibble::rownames_to_column('coxlevels') %>%
+		  dplyr::select(coxlevels, name = term, Estimate = estimate, `Std. Error` = std.error, `z value` = statistic, `Pr(>|z|)` = p.value)
 
 		# select the two columns that correspond to the upper and lower confidence estimates
 		conf_table <- 
-		    summary_table[, c((ncol(summary_table) - 1), ncol(summary_table))]
+		  summary_table[, c((ncol(summary_table) - 1), ncol(summary_table))]
 
 		colnames(conf_table) <- c('cox_HR_conf_low','cox_HR_conf_high')
 
 		conf_table <- 
-		    conf_table %>%
-		    tibble::rownames_to_column('coxlevels') 
+		  conf_table %>%
+		  tibble::rownames_to_column('coxlevels') 
 
 		stats_table <- 
-		    left_join(conf_table, # this should go first or else you lose the rows that are NAs
-		              coef_table, 
-		              by = 'coxlevels') %>%
-		    mutate(coxHR = Estimate, # I don't need to exponentiate in this version because I've already exponentiated in the summary_table
-		            coxpvals = `Pr(>|z|)`)
+      left_join(conf_table, # this should go first or else you lose the rows that are NAs
+                coef_table, 
+                by = 'coxlevels') %>%
+      mutate(coxHR = Estimate, # I don't need to exponentiate in this version because I've already exponentiated in the summary_table
+              coxpvals = `Pr(>|z|)`)
 
 		# format everything so the strings look nice
 		coef_full_table <- 
@@ -1401,13 +1390,7 @@ do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 		            FMT_conf = paste0('(',FMT_low,' - ',FMT_up,')') %>% {sprintf(paste0('%',max(nchar(.), na.rm=T),'s'),.)},
 		            HR_full_p = paste0(FMT_HR, ' ', FMT_conf, '; p<',FMT_PVAL),
 		            HR_full = paste0(FMT_HR, ' ', FMT_conf)) %>%
-		    mutate(FMT_PVAL = case_when(
-		                coxpvals < 0.0001 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "***"),
-		                coxpvals < 0.001 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "***"),
-		                coxpvals < 0.01 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "**"),
-		                coxpvals < 0.05 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "*"),
-		                TRUE ~ as.character(format(round(coxpvals, 3), nsmall = 3))
-		            )) %>%
+		    mutate(FMT_PVAL = format_p_val(coxpvals)) %>%
 		    dplyr::select(name, FMT_HR, FMT_conf, FMT_PVAL)
 		
 		return(coef_full_table)
@@ -1443,78 +1426,3 @@ cox_results <- do_cox(imputed)
 lasso_columns <- do_cox(imputed, do_lasso = TRUE)
 lasso_cox_results <- do_cox(imputed, do_lasso = FALSE, vars_to_select = lasso_columns)
 joined <- full_join(cox_results, lasso_cox_results, by = "name", suffix = c(".full", ".lasso"))
-
-stepwise_cox_results <- do_cox(imputed, do_lasso = FALSE, vars_to_select = c(
-  "new_enroll[ 100, 500)",
-  "new_enroll[  50, 100)",
-  "new_enroll[  10,  50)",
-  "new_enroll[ 500,1000)",
-  "new_enroll[1000, Inf]",
-  "br_allocationRandomized",
-  "industry_any2bOther",
-  "industry_any2bUS.Govt",
-  "br_masking2Double",
-  "br_phase4_ref_ph3Phase 1",
-  "br_singleregion4EastAsia",
-  "new_num_facilities[ 10,Inf]",
-  "infection_anyTRUE",
-  "interv_radiationTRUE",
-  "location_liverTRUE",
-  "motilityTRUE",
-  "br_gni_lmic_hicLMIC and HIC",
-  "new_num_facilities  2",
-  "primary_purposeDiagnostic",
-  "interv_drugTRUE",
-  "has_dmcTRUE",
-  "interv_deviceTRUE",
-  "infection_intestinesTRUE",
-  "nafld_nashTRUE",
-  "nonspecificTRUE",
-  "primary_purposeSupportive Care",
-  "new_num_facilities[  3, 10)",
-  "interv_geneticTRUE",
-  "location_gallbladderTRUE",
-  "pancreatitisTRUE",
-  "ulcerative_diseaseTRUE",
-  "br_masking2Single"))
-joined <- left_join(joined, stepwise_cox_results, by = "name", suffix = c("", ".stepwise"))
-
-aic_cox_results <- do_cox(imputed, do_lasso = FALSE, vars_to_select = c(
-  "industry_any2bOther",
-  "industry_any2bUS.Govt",
-  "primary_purposeDiagnostic",
-  "primary_purposeSupportive Care",
-  "br_phase4_ref_ph3Not Applicable",
-  "br_phase4_ref_ph3Phase 1",
-  "br_phase4_ref_ph3Phase 1/2-2",
-  "br_phase4_ref_ph3Phase 4",
-  "new_enroll[  10,  50)",
-  "new_enroll[  50, 100)",
-  "new_enroll[ 100, 500)",
-  "new_enroll[ 500,1000)",
-  "new_enroll[1000, Inf]",
-  "br_masking2Double",
-  "br_masking2Single",
-  "br_allocationRandomized",
-  "has_dmcTRUE",
-  "br_gni_lmic_hicLMIC and HIC",
-  "br_gni_lmic_hicLMIC Only",
-  "br_singleregion4EastAsia",
-  "new_num_facilities  2",
-  "new_num_facilities[  3, 10)",
-  "new_num_facilities[ 10,Inf]",
-  "infection_anyTRUE",
-  "infection_intestinesTRUE",
-  "neoplasia_metastasisTRUE",
-  "motilityTRUE",
-  "nafld_nashTRUE",
-  "nonspecificTRUE",
-  "pancreatitisTRUE",
-  "ulcerative_diseaseTRUE",
-  "location_stomachTRUE",
-  "location_colon_rectumTRUE",
-  "location_notspecifiedTRUE",
-  "interv_drugTRUE",
-  "interv_deviceTRUE",
-  "interv_radiationTRUE"))
-joined <- left_join(joined, aic_cox_results, by = "name", suffix = c("", ".aic"))

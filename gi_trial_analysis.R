@@ -796,9 +796,10 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
 num_comparisons <- 40
 ts_table <- rbind(
   do_time_series_analysis("total", full_gi_df %>% select(year_trial) %>% mutate(dummy = TRUE), num_comparisons),
+  do_time_series_analysis("purpose", full_gi_df, num_comparisons, "new_primary_purpose_treatment"),
   do_time_series_analysis("industry", full_gi_df, num_comparisons, "industry_any2b"),
   do_time_series_analysis("region", full_gi_df %>% select(year_trial, NorthAmerica, Europe, EastAsia, neither3regions), num_comparisons),
-  do_time_series_analysis("gci_huc", full_gi_df, num_comparisons, "br_gni_hic"),
+  do_time_series_analysis("br_gni_hic", full_gi_df, num_comparisons, "br_gni_hic"),
   do_time_series_analysis("early_discontinuation", full_gi_df, num_comparisons, "early_discontinuation"),
   do_time_series_analysis("randomization", full_gi_df, num_comparisons, "br_allocation"),
   do_time_series_analysis("masking", full_gi_df, num_comparisons, "br_masking2"),
@@ -807,8 +808,8 @@ ts_table <- rbind(
   do_time_series_analysis("reported", full_gi_df, num_comparisons, "were_results_reported"),
   do_time_series_analysis("infection_any", full_gi_df, num_comparisons, "infection_any"),
   do_time_series_analysis("br_gni_lmic_hic_only", full_gi_df, num_comparisons, "br_gni_lmic_hic_only"),
-  do_time_series_analysis("disease", full_gi_df %>% select(year_trial, cols_disease), num_comparisons),
-  do_time_series_analysis("disease_location", full_gi_df %>% select(year_trial, cols_location), num_comparisons)
+  do_time_series_analysis("disease", full_gi_df %>% select(year_trial, all_of(cols_disease)), num_comparisons),
+  do_time_series_analysis("disease_location", full_gi_df %>% select(year_trial, all_of(cols_location)), num_comparisons)
 )
 
 #######################################
@@ -837,7 +838,7 @@ micedata <- joined_df %>%
 # is, "the number of imputations should be similar to the percentage of 
 # cases that are incomplete." Given the computational expense and the above
 # literature, plus the small amount of missing data, a value of 10 seems valid
-num_imputations <- 5
+num_imputations <- 2
 
 # Royston and White (2011) and Van Buuren et al. (1999) have all suggested
 # that more than 10 cycles are needed for the convergence of the sampling
@@ -848,7 +849,7 @@ num_imputations <- 5
 # we ran the well-known method described in "MICE in R" from the Journal of 
 # Statistical Software (2011), and found good convergence using just 10 
 # iterations. As a precaution, I've upped this to 20.
-iterations <- 20
+iterations <- 1
 
 # Simply just set up the methods and predictor matrices, as suggested in Heymans and Eekhout's "Applied Missing Data Analysis"
 init <- mice(micedata, maxit = 0, m = 1) 
@@ -916,15 +917,17 @@ methods[c(
 methods[c(
   "number_of_arms", 
   "br_trialduration", 
-  "num_facilities", 
-  "num_regions", 
-  "num_countries",
-  "actual_duration", 
+  "actual_duration",
+  "enrollment",
   "numeric_study_first_submitted_date",
   "numeric_start_date",
   "numeric_results_first_submitted_date",
-  "numeric_primary_completion_date",
-  "enrollment")] = "cart"
+  "numeric_primary_completion_date")] = "pmm"
+
+methods[c(
+  "num_facilities", 
+  "num_regions", 
+  "num_countries")] = "cart"
 
 # Set all variables to 0 to begin with
 predM <- ifelse(predM < 0, 1, 0)
@@ -1194,23 +1197,20 @@ do_logistic <- function(output_variable, imputed) {
     mice::complete("all") %>%
     lapply(function(i) {
       add_additional_columns(i, TRUE) %>% 
-        filter(br_trialduration > 0)
+        filter(br_trialduration > 0) %>%
+        filter(!is.na(!! rlang::sym(output_variable)))
     }) %>%
     lapply(glm, formula = fmla, family = binomial(link = logit)) %>%
     pool()
 
-  cis <- confint(output)
-
-  ret <- do.call(rbind, lapply(attr(output$coefficients, "names"), function(name) {
-    p_val <- NA
-    try(p_val <- format_p_val(coef(summary(output))[name, "Pr(>|z|)"]), silent = TRUE)
-
+  summ <- summary(output, conf.int = TRUE, exponentiate = TRUE)
+  ret <- do.call(rbind, lapply(seq(length(summ$term)), function(i) {
     data.frame(
-      variable = name,
-      aOR = round(exp(as.numeric(output$coefficients[name])), 3),
-      low_ci = round(exp(cis[name, 1]), 3),
-      hi_ci = round(exp(cis[name, 2]), 3),
-      p_val = p_val
+        variable = summ$term[i],
+        aOR = round(summ$estimate[i], 3),
+        low_ci = round(summ$`2.5`[i], 3),
+        hi_ci = round(summ$`97.5`[i], 3),
+        p_val = format_p_val(summ$p.value[i])
     )
   }))
 
@@ -1229,10 +1229,10 @@ save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
   if (is.na(file_name)) {
     file_name <- paste0(var, ".png")
   }
-  filtered <- data %>% filter(br_trialduration >= 0)
-  fmla <- paste0("Surv(br_trialduration, br_censor_earlydiscontinuation) ~ ", var)
-  surv_fit <- survfit(as.formula(fmla), data = filtered)
-  plot <- ggsurvplot(surv_fit, 
+  filtered <- data %>% filter(br_trialduration > 0)
+  ffmla <- as.formula(paste0("Surv(br_trialduration, br_censor_earlydiscontinuation) ~ ", var))
+  survival_fit <- surv_fit(formula = ffmla, data = filtered)
+  plot <- ggsurvplot(survival_fit, 
             fun = 'event',
             data = filtered,
             xlim = c(0,60), 
@@ -1250,8 +1250,12 @@ save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
     dev.off()
 }
 
-save_kaplain_meier(full_gi_df, "industry_any3", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "phase", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "industry_any2b", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "new_primary_purpose_treatment", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "br_allocation", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "br_singleregion4", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "new_num_facilities", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "br_phase4_ref_ph3", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "has_dmc", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "br_masking2", "~/Desktop/km_curves/")
 save_kaplain_meier(full_gi_df, "new_enroll", "~/Desktop/km_curves/")
@@ -1426,3 +1430,15 @@ cox_results <- do_cox(imputed)
 lasso_columns <- do_cox(imputed, do_lasso = TRUE)
 lasso_cox_results <- do_cox(imputed, do_lasso = FALSE, vars_to_select = lasso_columns)
 joined <- full_join(cox_results, lasso_cox_results, by = "name", suffix = c(".full", ".lasso"))
+
+
+
+
+#########
+View(table1)
+View(table2)
+View(table3)
+View(ts_table)
+View(results_reported)
+View(early_disc)
+View(joined)

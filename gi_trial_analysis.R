@@ -495,7 +495,7 @@ full_gi_df <- add_additional_columns(joined_df)
 							       
 ####################################	
 format_p_val <- function(p_val) {
-  if (is.nan(p_val)) {
+  if (is.na(p_val) || is.nan(p_val) || !is.numeric(p_val)) {
     return("-")
   } else if (p_val < 0.0001) {
     return(paste0(format(round(p_val, 3), nsmall = 3), "****"))
@@ -737,20 +737,20 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
   # Computes Kendall-Mann p-values for each time series
   kendall_mann <- combined %>%
     summarise_at(vars(-year_trial), 
-      function(x) Kendall::MannKendall(x)$sl) %>%
+      function(x) format_p_val(Kendall::MannKendall(x)$sl)) %>%
     t()
 
   # Corrects for multiple comparisons problem
   bonferroni_kendall <- combined %>%
     summarise_at(vars(-year_trial), 
-      function(x) ((num_comparisons - 1)/2) * Kendall::MannKendall(x)$sl) %>% 
+      function(x) format_p_val(((num_comparisons - 1)/2) * Kendall::MannKendall(x)$sl)) %>% 
     Reduce(f = cbind) %>%
     t()
 
   # ordinary least squares
   ols <- combined %>%
     summarise_at(vars(-year_trial), 
-      function(x) summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
+      function(x) format_p_val(summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)'])) %>%
     t()
 
   # To visualize linear model, run:
@@ -759,12 +759,12 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
   # correcting Multiple comparisons problem, same as in Kendall-Mann 
   bonferroni_ols <- combined %>%
     summarise_at(vars(-year_trial), 
-      function(x) ((num_comparisons - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)']) %>%
+      function(x) format_p_val(((num_comparisons - 1)/2) * summary(lm(x ~ year_trial, data = .))$coefficients[2, 'Pr(>|t|)'])) %>%
     t()
 
   growth_statistics <- 
-      cbind.data.frame(aagr = aagr,
-                       cagr = cagr,
+      cbind.data.frame(aagr = paste0(round(100 * aagr, 1), "%"),
+                       cagr = paste0(round(100 * cagr, 1), "%"),
                        kendall_pval = kendall_mann,
                        kendall_pval_bonferroni = bonferroni_kendall,
                        ols_pval = ols,
@@ -783,7 +783,7 @@ do_time_series_analysis <- function(classification, input, num_comparisons, non_
     cat <- CochranArmitageTest(contingency)
 
     # Add p-val to growth_statistics data frame for the variable of interest
-    growth_statistics$cochrane_armitage[growth_statistics$trialvar == name] <- cat$p.value
+    growth_statistics$cochrane_armitage[growth_statistics$trialvar == name] <- format_p_val(cat$p.value)
   }
 
   # Prefix all the variables in the table with a "classification" for easier sorting
@@ -1266,6 +1266,37 @@ save_kaplain_meier(full_gi_df, "new_enroll", "~/Desktop/km_curves/")
 # Cox regression with all variables
 
 ###########
+bformat_num <- function(num, dec = 2, cap = Inf, na_response = NA) {
+  # try bformat_num(64.42424)
+  # returns a string
+
+  # note that this does not do much for really small, positive numbers! 
+  # if dec = 2, anything below 0.01 becomes '0.00'; if dec = 4 anything below 0.0001 becomes '0.0000', etc
+  if(is.na(num)) return(na_response)
+  
+  if(abs(num) > cap) {
+    if(num < 0) {
+      finalnum <- paste0('<-',cap) 
+    } else {
+      finalnum <- paste0('>',cap)
+    }
+    return(finalnum)
+  }
+  formatting <- paste0('%.',dec,'f')
+  sprintf(formatting, num)
+}
+
+bvec_format_num <- function(numvec, dec = 2, cap = Inf, na_response = NA, alignWidth = F) {
+  vec <- sapply(numvec, function(inum) bformat_num(inum, dec = dec, cap = cap, na_response = na_response))
+  
+  if(alignWidth) {
+    maxn <- max(nchar(vec))
+    vec <- sprintf(paste0('% ',maxn, 's'), vec)
+  }
+  
+  return(vec)
+}
+
 do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 	output <- imputed %>% 
 	    mice::complete("all") %>%
@@ -1394,7 +1425,13 @@ do_cox <- function(imputed, do_lasso = FALSE, vars_to_select = NA, alpha = 1) {
 		            FMT_conf = paste0('(',FMT_low,' - ',FMT_up,')') %>% {sprintf(paste0('%',max(nchar(.), na.rm=T),'s'),.)},
 		            HR_full_p = paste0(FMT_HR, ' ', FMT_conf, '; p<',FMT_PVAL),
 		            HR_full = paste0(FMT_HR, ' ', FMT_conf)) %>%
-		    mutate(FMT_PVAL = format_p_val(coxpvals)) %>%
+		    mutate(FMT_PVAL = case_when(
+		                coxpvals < 0.0001 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "***"),
+		                coxpvals < 0.001 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "***"),
+		                coxpvals < 0.01 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "**"),
+		                coxpvals < 0.05 ~ paste0(format(round(coxpvals, 3), nsmall = 3), "*"),
+		                TRUE ~ as.character(format(round(coxpvals, 3), nsmall = 3))
+		            )) %>%
 		    dplyr::select(name, FMT_HR, FMT_conf, FMT_PVAL)
 		
 		return(coef_full_table)
@@ -1430,8 +1467,6 @@ cox_results <- do_cox(imputed)
 lasso_columns <- do_cox(imputed, do_lasso = TRUE)
 lasso_cox_results <- do_cox(imputed, do_lasso = FALSE, vars_to_select = lasso_columns)
 joined <- full_join(cox_results, lasso_cox_results, by = "name", suffix = c(".full", ".lasso"))
-
-
 
 
 #########

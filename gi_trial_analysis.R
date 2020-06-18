@@ -214,7 +214,7 @@ full_comparison_df <-
   Bigtbl %>%
   filter(study_type == 'Interventional') %>% 
   filter(study_first_submitted_date >= ymd('20071001')) %>%
-  filter(study_first_submitted_date < ymd('20180501')) %>%
+  filter(study_first_submitted_date < ymd('20200101')) %>%
   filter(nct_id %nin% (full_gi_df %>% pull(nct_id))) %>% 
   mutate(bintime = case_when(
     year(study_first_submitted_date) <= 2012 ~ '2007_2013',
@@ -257,7 +257,7 @@ nrow(full_gi_df)
 flowfiguredf <- 
   c('get the last date for trials that we used' = as.character(gi_maxdate),
     'how many trials were in the database at time that we downloaded stuff' = btest0 %>% filter(totaltrials) %>% pull(n),
-    'how many trials were in the database at April 30th 2018?' = btest0b %>% filter(totaltrials) %>% pull(n),
+    'how many trials were in the database at April 30th 2019?' = btest0b %>% filter(totaltrials) %>% pull(n),
     'how many lost b/c of lack of interventional status' = nrow(btest1) - nrow(btest2),
     'how many additional lost b/c of registration before October 1, 2007?' = nrow(btest2) - nrow(btest3),
     'how many are we left with before specialty filter?' = nrow(btest3),
@@ -478,18 +478,18 @@ full_gi_df <-
   mutate(br_time_until_resultsreport_or_present_inmonths = case_when(
     br_studystatus != 'Completed' ~ NA_real_,
     were_results_reported ~ as.period(results_first_submitted_date - primary_completion_date) / months(1),
-    TRUE ~ as.period(ymd('20180501') - primary_completion_date) / months(1)
+    TRUE ~ as.period(ymd('20200101') - primary_completion_date) / months(1)
   )) %>%
   mutate(br_censor_were_results_reported = as.numeric(were_results_reported)) %>%
   mutate(br_were_results_reported_within_2year = case_when(
     br_studystatus != 'Completed' ~ NA,
-    primary_completion_date >= ymd('20160501') ~ NA, # we only consider trials completed >=2 years ago (we should later change this to not be hard coded)
+    primary_completion_date >= ymd('20170101') ~ NA, # we only consider trials completed >=2 years ago (we should later change this to not be hard coded)
     were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 24) ~ TRUE,
     TRUE ~ FALSE
   )) %>%
   mutate(br_were_results_reported_within_1year = case_when(
     br_studystatus != 'Completed' ~ NA,
-    primary_completion_date >= ymd('20170501') ~ NA, # we only consider trials completed >=1 year ago
+    primary_completion_date >= ymd('20180101') ~ NA, # we only consider trials completed >=1 year ago
     were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 12) ~ TRUE,
     TRUE ~ FALSE
   )) %>%

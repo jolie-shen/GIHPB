@@ -824,7 +824,8 @@ micedata <- joined_df %>%
       -start_date, 
       -completion_date, 
       -results_first_submitted_date, 
-      -primary_completion_date
+      -primary_completion_date,
+      -study_first_submitted_date
     )
 
 # This number was originally set by Rubin, and 5 was believed to be enough. 

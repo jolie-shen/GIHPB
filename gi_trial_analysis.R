@@ -41,7 +41,7 @@ colnames(fdaaa_tracker_data) <- paste0('fdaaatracker_', colnames(fdaaa_tracker_d
 # -------------------------------------------------------------------------------------------------------- #
 
 raw_gi_list <- 
-  openxlsx::read.xlsx(xlsxFile = 'all_ctgov_tables_oct_29_2019/gi_hpb_initial_data.xlsx',
+  openxlsx::read.xlsx(xlsxFile = 'all_ctgov_jun17/gi_hpb_trials_updated_jun17.xlsx',
                       sheet = 1, startRow = 1) %>%
   as_tibble() %>%
   mutate_all(as.character)
@@ -126,7 +126,7 @@ raw_gi_list <-
 
 
 name_table <- 
-  openxlsx::read.xlsx(xlsxFile = 'all_ctgov_tables_oct_29_2019/gi_hpb_initial_data.xlsx',
+  openxlsx::read.xlsx(xlsxFile = 'all_ctgov_jun17/gi_hpb_trials_updated_jun17.xlsx',
                       sheet = 2, startRow = 1) %>%
   as_tibble() %>%
   mutate_all(as.character)
@@ -177,8 +177,8 @@ full_gi_df <-
             Bigtbl,
             by = 'nct_id') %>%
   mutate(bintime = case_when(
-    year(study_first_submitted_date) <= 2012 ~ '2007_2012',
-    year(study_first_submitted_date) > 2012 ~ '2013_2018',
+    year(study_first_submitted_date) <= 2013 ~ '2007_2013',
+    year(study_first_submitted_date) > 2013 ~ '2013_2019',
     TRUE ~ NA_character_
   )) %>%
   mutate(nct_gi = TRUE)
@@ -206,7 +206,7 @@ full_gi_df <-
   full_gi_df %>%
   filter(study_type == 'Interventional') %>% 
   filter(study_first_submitted_date >= ymd('20071001')) %>%
-  filter(study_first_submitted_date < ymd('20180501'))
+  filter(study_first_submitted_date < ymd('20200101'))
 
 
 
@@ -227,9 +227,9 @@ full_comparison_df <-
 
 my_studies %>% count(study_first_submitted_date <= gi_maxdate) # how many trials were in database at time that we downloaded stuff? 
 btest0 <- my_studies %>% count(study_first_submitted_date <= gi_maxdate) %>% {colnames(.)[1] <- 'totaltrials'; .}
-btest0b <- my_studies %>% count(study_first_submitted_date < ymd('20180501')) %>% {colnames(.)[1] <- 'totaltrials'; .}
+btest0b <- my_studies %>% count(study_first_submitted_date < ymd('20200101')) %>% {colnames(.)[1] <- 'totaltrials'; .}
 
-btest1 <- my_studies %>% filter(study_first_submitted_date < ymd('20180501'))
+btest1 <- my_studies %>% filter(study_first_submitted_date < ymd('20200101'))
 btest2 <- btest1 %>% filter(study_type == 'Interventional') # how many interventional trials? 
 btest3 <- btest2 %>% filter(study_first_submitted_date >= ymd('20071001')) # how many lost because submitted before Oct 2007?
 
@@ -290,12 +290,12 @@ full_gi_df <-
                                             is.na(.) ~ FALSE, 
                                             TRUE ~ .)))
 
-full_comparison_df <-
-  full_comparison_df %>%
-  mutate_at(.vars = col_regions,
-            .funs = rlang::list2(~case_when(is.na(all_regions) ~ NA, 
-                                            is.na(.) ~ FALSE, 
-                                            TRUE ~ .)))
+#full_comparison_df <-
+#  full_comparison_df %>%
+#  mutate_at(.vars = col_regions,
+#            .funs = rlang::list2(~case_when(is.na(all_regions) ~ NA, 
+#                                            is.na(.) ~ FALSE, 
+#                                            TRUE ~ .)))
 
 # some notes for you on regions and countries in case you want to know what the top 20 are (in order) across ALL trials
 col_reg_top <-
@@ -572,18 +572,18 @@ full_comparison_df <-
   mutate(br_time_until_resultsreport_or_present_inmonths = case_when(
     br_studystatus != 'Completed' ~ NA_real_,
     were_results_reported ~ as.period(results_first_submitted_date - primary_completion_date) / months(1),
-    TRUE ~ as.period(ymd('20180501') - primary_completion_date) / months(1)
+    TRUE ~ as.period(ymd('20200101') - primary_completion_date) / months(1)
   )) %>%
   mutate(br_censor_were_results_reported = as.numeric(were_results_reported)) %>%
   mutate(br_were_results_reported_within_2year = case_when(
     br_studystatus != 'Completed' ~ NA,
-    primary_completion_date >= ymd('20160501') ~ NA, # we only consider trials completed >=2 years ago (we should later change this to not be hard coded)
+    primary_completion_date >= ymd('20180101') ~ NA, # we only consider trials completed >=2 years ago (we should later change this to not be hard coded)
     were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 24) ~ TRUE,
     TRUE ~ FALSE
   )) %>%
   mutate(br_were_results_reported_within_1year = case_when(
     br_studystatus != 'Completed' ~ NA,
-    primary_completion_date >= ymd('20170501') ~ NA, # we only consider trials completed >=1 year ago
+    primary_completion_date >= ymd('20190101') ~ NA, # we only consider trials completed >=1 year ago
     were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 12) ~ TRUE,
     TRUE ~ FALSE
   )) %>%

@@ -3,7 +3,7 @@ set.seed(5)
 libraries <- c(
   'zip', 'DescTools', 'svMisc', 'ggpubr', 'Hmisc', 'mice', 'glmnet', 
   'tidyverse', 'RefManageR', 'DT', 'lubridate', 'ggplot2', 'openxlsx', 
-  'survminer', 'Kendall', 'coin', 'dplyr'
+  'survminer', 'Kendall', 'coin', 'dplyr', 'viridis'
 )
 
 

@@ -649,10 +649,10 @@ full_spec_combined_df <-
 nct_gi <- full_gi_df %>% pull(nct_id)
 nct_gi_global <- full_gi_df %>% pull(nct_id)
 nct_gi_USA <- full_gi_df %>% pull(nct_id)
-nct_gi_early_global <- full_gi_df %>% filter(bintime == '2007_2012') %>% pull(nct_id)
-nct_gi_late_global <- full_gi_df %>% filter(bintime == '2013_2018') %>% pull(nct_id)
-nct_gi_early_USA <- full_gi_df %>% filter(bintime == '2007_2012') %>% filter(USA_only_facilities) %>% pull(nct_id)
-nct_gi_late_USA <- full_gi_df %>% filter(bintime == '2013_2018') %>% filter(USA_only_facilities) %>% pull(nct_id)
+nct_gi_early_global <- full_gi_df %>% filter(bintime == '2007_2013') %>% pull(nct_id)
+nct_gi_late_global <- full_gi_df %>% filter(bintime == '2014_2018') %>% pull(nct_id)
+nct_gi_early_USA <- full_gi_df %>% filter(bintime == '2007_2013') %>% filter(USA_only_facilities) %>% pull(nct_id)
+nct_gi_late_USA <- full_gi_df %>% filter(bintime == '2014_2018') %>% filter(USA_only_facilities) %>% pull(nct_id)
 
 # for table2
 nct_gi_other_global <- full_gi_df %>% filter(industry_any2b == 'Other') %>% pull(nct_id)

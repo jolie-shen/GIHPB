@@ -222,7 +222,7 @@ add_additional_columns <- function(input_df, recompute_dates = FALSE) {
     ) %>%
     mutate(bintime = case_when(
       year(study_first_submitted_date) <= 2013 ~ '2007_2013',
-      year(study_first_submitted_date) > 2013 ~ '2014_2018',
+      year(study_first_submitted_date) > 2013 ~ '2014_2019',
       TRUE ~ NA_character_
     )) %>%
     mutate(nct_gi = TRUE)
@@ -245,7 +245,7 @@ add_additional_columns <- function(input_df, recompute_dates = FALSE) {
           # 10/1/2007 - the date clinical trials mandated to be put in
           # 5/1/2018 arbitrary for neuroanalysis
   early_date <- '20071001'
-  late_date <- '20180501'
+  late_date <- '20200101'
   full_gi_df <- 
     full_gi_df %>%
     filter(study_type == 'Interventional') %>% 
@@ -412,18 +412,18 @@ add_additional_columns <- function(input_df, recompute_dates = FALSE) {
       br_time_until_resultsreport_or_present_inmonths = case_when(
         br_studystatus != 'Completed' ~ NA_real_,
         were_results_reported ~ as.period(results_first_submitted_date - primary_completion_date) / months(1),
-        TRUE ~ as.period(ymd('20180501') - primary_completion_date) / months(1)
+        TRUE ~ as.period(ymd('20200101') - primary_completion_date) / months(1)
       ),
       br_censor_were_results_reported = as.numeric(were_results_reported),
       br_were_results_reported_within_2year = case_when(
         br_studystatus != 'Completed' ~ NA,
-        primary_completion_date >= ymd('20160501') ~ NA,
+        primary_completion_date >= ymd('20180101') ~ NA,
         were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 24) ~ TRUE,
         TRUE ~ FALSE
       ),
       br_were_results_reported_within_1year = case_when(
         br_studystatus != 'Completed' ~ NA,
-        primary_completion_date >= ymd('20170501') ~ NA,
+        primary_completion_date >= ymd('20190101') ~ NA,
         were_results_reported & (br_time_until_resultsreport_or_present_inmonths <= 12) ~ TRUE,
         TRUE ~ FALSE
       ),

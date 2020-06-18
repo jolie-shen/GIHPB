@@ -178,7 +178,7 @@ full_gi_df <-
             by = 'nct_id') %>%
   mutate(bintime = case_when(
     year(study_first_submitted_date) <= 2013 ~ '2007_2013',
-    year(study_first_submitted_date) > 2013 ~ '2013_2019',
+    year(study_first_submitted_date) > 2013 ~ '2014_2019',
     TRUE ~ NA_character_
   )) %>%
   mutate(nct_gi = TRUE)
@@ -217,8 +217,8 @@ full_comparison_df <-
   filter(study_first_submitted_date < ymd('20180501')) %>%
   filter(nct_id %nin% (full_gi_df %>% pull(nct_id))) %>% 
   mutate(bintime = case_when(
-    year(study_first_submitted_date) <= 2012 ~ '2007_2012',
-    year(study_first_submitted_date) > 2012 ~ '2013_2018',
+    year(study_first_submitted_date) <= 2012 ~ '2007_2013',
+    year(study_first_submitted_date) > 2012 ~ '2014_2019',
     TRUE ~ NA_character_
   ))
 
@@ -650,9 +650,9 @@ nct_gi <- full_gi_df %>% pull(nct_id)
 nct_gi_global <- full_gi_df %>% pull(nct_id)
 nct_gi_USA <- full_gi_df %>% pull(nct_id)
 nct_gi_early_global <- full_gi_df %>% filter(bintime == '2007_2013') %>% pull(nct_id)
-nct_gi_late_global <- full_gi_df %>% filter(bintime == '2014_2018') %>% pull(nct_id)
+nct_gi_late_global <- full_gi_df %>% filter(bintime == '2014_2019') %>% pull(nct_id)
 nct_gi_early_USA <- full_gi_df %>% filter(bintime == '2007_2013') %>% filter(USA_only_facilities) %>% pull(nct_id)
-nct_gi_late_USA <- full_gi_df %>% filter(bintime == '2014_2018') %>% filter(USA_only_facilities) %>% pull(nct_id)
+nct_gi_late_USA <- full_gi_df %>% filter(bintime == '2014_2019') %>% filter(USA_only_facilities) %>% pull(nct_id)
 
 # for table2
 nct_gi_other_global <- full_gi_df %>% filter(industry_any2b == 'Other') %>% pull(nct_id)
@@ -1293,8 +1293,8 @@ table1_disease_enrollment_general_global <-
              group_by(disease_subgroup, bintime) %>%
              summarise(tenroll = sum(disease_enrollment)) %>%
              pivot_wider(names_from = bintime, values_from = tenroll) %>%
-             rename(totalenrollment_early = `2007_2012`, 
-                    totalenrollment_late = `2013_2018`),
+             rename(totalenrollment_early = `2007_2013`, 
+                    totalenrollment_late = `2014_2019`),
            table1_disease_enrollment_raw_data %>%
              filter(br_studystatus == 'Completed') %>%
              filter(!is.na(industry_any2b)) %>%
@@ -1322,8 +1322,8 @@ table1_disease_enrollment_general_USA <-
              group_by(disease_subgroup, bintime) %>%
              summarise(tenroll = sum(disease_enrollment)) %>%
              pivot_wider(names_from = bintime, values_from = tenroll) %>%
-             rename(totalenrollment_early = `2007_2012`, 
-                    totalenrollment_late = `2013_2018`),
+             rename(totalenrollment_early = `2007_2013`, 
+                    totalenrollment_late = `2014_2019`),
            table1_disease_enrollment_raw_data %>% 
              filter(USA_only_facilities) %>%
              filter(br_studystatus == 'Completed') %>%
@@ -2045,8 +2045,8 @@ table3_sponsor_name_gi <-
   bcount(lead_agency_name, lead_agency_class, bintime) %>%
   select(-nn) %>% 
   mutate(bintime = case_when(
-    bintime == '2013_2018' ~ 'late',
-    bintime == '2007_2012' ~ 'early'
+    bintime == '2014_2019' ~ 'late',
+    bintime == '2007_2013' ~ 'early'
   )) %>%
   tidyr::spread(key = 'bintime', value = n) %>% 
   mutate(total = unlist(
@@ -2063,8 +2063,8 @@ if(include_comparison_combined_analysis) {
     bcount(lead_agency_name, lead_agency_class, bintime) %>%
     select(-nn) %>% 
     mutate(bintime = case_when(
-      bintime == '2013_2018' ~ 'late',
-      bintime == '2007_2012' ~ 'early'
+      bintime == '2014_2019' ~ 'late',
+      bintime == '2007_2013' ~ 'early'
     )) %>%
     tidyr::spread(key = 'bintime', value = n) %>% 
     mutate(total = unlist(
@@ -3298,7 +3298,7 @@ fig_df_1c_yearly_comparison_pct_all_USA <-
 # Figures #
 # Global - gi - % of combined line graph
 gg_fig_1c_yearlypct_gi_combined_global <- 
-  ggplot(data = fig_df_1c_yearly_gi_pct_all_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1c_yearly_gi_pct_all_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), 
              y = gi_pct_all_combined,
              group = constant)) + # not sure if it's a bug but we have to specify a group variable here for this
@@ -3333,7 +3333,7 @@ gg_fig_1c_yearlypct_gi_combined_global <-
 # Global - Comparison - % of combined line graph
 # if(include_comparison_combined_analysis) {
 gg_fig_1c_yearlypct_comparison_combined_global <- 
-  ggplot(data = fig_df_1c_yearly_comparison_pct_all_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1c_yearly_comparison_pct_all_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), 
              y = comparison_pct_all_combined,
              group = constant)) + # not sure if it's a bug but we have to specify a group variable here for this
@@ -3367,7 +3367,7 @@ gg_fig_1c_yearlypct_comparison_combined_global <-
 
 # USA - gi - % of combined line graph
 gg_fig_1c_yearlypct_gi_combined_USA <- 
-  ggplot(data = fig_df_1c_yearly_gi_pct_all_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1c_yearly_gi_pct_all_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), 
              y = gi_pct_all_combined,
              group = constant)) + # not sure if it's a bug but we have to specify a group variable here for this
@@ -3401,7 +3401,7 @@ gg_fig_1c_yearlypct_gi_combined_USA <-
 # USA - Comparison - % of combined line graph
 # if(include_comparison_combined_analysis) {
 gg_fig_1c_yearlypct_comparison_combined_USA <- 
-  ggplot(data = fig_df_1c_yearly_comparison_pct_all_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1c_yearly_comparison_pct_all_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), 
              y = comparison_pct_all_combined,
              group = constant)) + # not sure if it's a bug but we have to specify a group variable here for this
@@ -3459,7 +3459,7 @@ fig_df_1b_yearly_enrollment_comparison_global <-
 
 # Global - gi - Brandon Figure
 gg_fig_1b_yearly_enrollment_gi_global <- 
-  ggplot(data = fig_df_1b_yearly_enrollment_gi_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1b_yearly_enrollment_gi_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = cap_enroll_2000)) + 
   geom_jitter(alpha = 0.04, color = color1, width = 0.1, size = 3) +
   geom_boxplot(outlier.colour = NA, 
@@ -3486,7 +3486,7 @@ gg_fig_1b_yearly_enrollment_gi_global <-
 # Global - Comparison - Brandon Figure
 # if(include_comparison_combined_analysis) {
 gg_fig_1b_yearly_enrollment_comparison_global <- 
-  ggplot(data = fig_df_1b_yearly_enrollment_comparison_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1b_yearly_enrollment_comparison_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = cap_enroll_2000)) + 
   geom_jitter(alpha = 0.01, color = color1, width = 0.1, size = 3) +
   geom_boxplot(outlier.colour = NA, 
@@ -3538,7 +3538,7 @@ fig_df_1b_yearly_enrollment_comparison_USA <-
 
 # USA - gi - Brandon Figure
 gg_fig_1b_yearly_enrollment_gi_USA <- 
-  ggplot(data = fig_df_1b_yearly_enrollment_gi_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1b_yearly_enrollment_gi_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = cap_enroll_2000)) + 
   geom_jitter(alpha = 0.06, color = color1, width = 0.1, size = 4) +
   geom_boxplot(outlier.colour = NA, 
@@ -3565,7 +3565,7 @@ gg_fig_1b_yearly_enrollment_gi_USA <-
 # USA - Comparison - Brandon Figure
 # if(include_comparison_combined_analysis) {
 gg_fig_1b_yearly_enrollment_comparison_USA <- 
-  ggplot(data = fig_df_1b_yearly_enrollment_comparison_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1b_yearly_enrollment_comparison_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = cap_enroll_2000)) + 
   geom_jitter(alpha = 0.01, color = color1, width = 0.1, size = 3) +
   geom_boxplot(outlier.colour = NA, 
@@ -3723,7 +3723,7 @@ fig_df_1d_yearly_sponsor_COMBINED_pct_USA <-
 
 # Global - gi - Sponsorship Line Graph (freq)
 gg_fig_1d_yearly_sponsor_gi_freq_global <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_gi_freq_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_gi_freq_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = freq_of_all_trials, group = industry_any2b)) +
   geom_line(aes(color = industry_any2b), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -3747,7 +3747,7 @@ gg_fig_1d_yearly_sponsor_gi_freq_global <-
 
 # Global - gi - Sponsorship Line Graph (pct)
 gg_fig_1d_yearly_sponsor_gi_pct_global <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_gi_pct_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_gi_pct_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = industry_any2b)) +
   geom_line(aes(color = industry_any2b), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -3775,7 +3775,7 @@ gg_fig_1d_yearly_sponsor_gi_pct_global <-
 # Global - Comparison - Sponsorship Line Graph (freq)
 # if(include_comparison_combined_analysis) {
 gg_fig_1d_yearly_sponsor_comparison_freq_global <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_comparison_freq_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_comparison_freq_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = freq_of_all_trials, group = industry_any2b)) +
   geom_line(aes(color = industry_any2b), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -3801,7 +3801,7 @@ gg_fig_1d_yearly_sponsor_comparison_freq_global <-
 # Global - Comparison - Sponsorship Line Graph (pct)
 # if(include_comparison_combined_analysis) {
 gg_fig_1d_yearly_sponsor_comparison_pct_global <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_comparison_pct_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_comparison_pct_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = industry_any2b)) +
   geom_line(aes(color = industry_any2b), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -3830,7 +3830,7 @@ gg_fig_1d_yearly_sponsor_comparison_pct_global <-
 # Global - COMBINED - Sponsorship Line Graph (freq)
 # if(include_comparison_combined_analysis) {
 gg_fig_1d_yearly_sponsor_COMBINED_freq_global <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_freq_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_freq_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = freq_of_all_trials, group = group_id)) +
   geom_line(aes(color = industry_any2b,
                 alpha = specialty_group), size = 2) +
@@ -3862,7 +3862,7 @@ gg_fig_1d_yearly_sponsor_COMBINED_freq_global <-
 # Global - COMBINED - Sponsorship Line Graph (pct; alpha)
 # if(include_comparison_combined_analysis) {
 gg_fig_1d_yearly_sponsor_COMBINED_pct_global_alpha <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_pct_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_pct_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = group_id)) +
   geom_line(aes(color = industry_any2b,
                 alpha = specialty_group,
@@ -3914,7 +3914,7 @@ gg_fig_1d_yearly_sponsor_COMBINED_pct_global_alpha <-
 
 # USA - gi - Sponsorship Line Graph (freq)
 gg_fig_1d_yearly_sponsor_gi_freq_USA <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_gi_freq_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_gi_freq_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = freq_of_all_trials, group = industry_any2b)) +
   geom_line(aes(color = industry_any2b), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -3938,7 +3938,7 @@ gg_fig_1d_yearly_sponsor_gi_freq_USA <-
 
 # USA - gi - Sponsorship Line Graph (pct)
 gg_fig_1d_yearly_sponsor_gi_pct_USA <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_gi_pct_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_gi_pct_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = industry_any2b)) +
   geom_line(aes(color = industry_any2b), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -3965,7 +3965,7 @@ gg_fig_1d_yearly_sponsor_gi_pct_USA <-
 
 # USA - Comparison - Sponsorship Line Graph (freq)
 gg_fig_1d_yearly_sponsor_comparison_freq_USA <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_comparison_freq_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_comparison_freq_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = freq_of_all_trials, group = industry_any2b)) +
   geom_line(aes(color = industry_any2b), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -3989,7 +3989,7 @@ gg_fig_1d_yearly_sponsor_comparison_freq_USA <-
 
 # USA - Comparison - Sponsorship Line Graph (pct)
 gg_fig_1d_yearly_sponsor_comparison_pct_USA <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_comparison_pct_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_comparison_pct_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = industry_any2b)) +
   geom_line(aes(color = industry_any2b), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -4016,7 +4016,7 @@ gg_fig_1d_yearly_sponsor_comparison_pct_USA <-
 
 # USA - COMBINED - Sponsorship Line Graph (freq)
 gg_fig_1d_yearly_sponsor_COMBINED_freq_USA <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_freq_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_freq_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = freq_of_all_trials, group = group_id)) +
   geom_line(aes(color = industry_any2b,
                 alpha = specialty_group), size = 2) +
@@ -4047,7 +4047,7 @@ gg_fig_1d_yearly_sponsor_COMBINED_freq_USA <-
 
 # USA - COMBINED - Sponsorship Line Graph (pct; alpha)
 gg_fig_1d_yearly_sponsor_COMBINED_pct_USA_alpha <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_pct_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_pct_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = group_id)) +
   geom_line(aes(color = industry_any2b,
                 alpha = specialty_group,
@@ -4098,7 +4098,7 @@ gg_fig_1d_yearly_sponsor_COMBINED_pct_USA_alpha <-
 
 # USA - COMBINED - Sponsorship Line Graph (pct; color)
 gg_fig_1d_yearly_sponsor_COMBINED_pct_USA_color <- 
-  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_pct_USA %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1d_yearly_sponsor_COMBINED_pct_USA %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = group_id)) +
   geom_line(aes(color = group_id), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -4202,7 +4202,7 @@ fig_df_1e_yearly_region_COMBINED_pct_global <-
 
 # Global - gi - Region Line Graph (freq)
 gg_fig_1e_yearly_region_gi_freq_global <-
-  ggplot(data = fig_df_1e_yearly_region_gi_freq_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1e_yearly_region_gi_freq_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = freq_of_all_trials, group = region)) +
   geom_line(aes(color = region), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -4226,7 +4226,7 @@ gg_fig_1e_yearly_region_gi_freq_global <-
 
 # Global - gi - Region Line Graph (pct)
 gg_fig_1e_yearly_region_gi_pct_global <-
-  ggplot(data = fig_df_1e_yearly_region_gi_pct_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1e_yearly_region_gi_pct_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = region)) +
   geom_line(aes(color = region), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -4253,7 +4253,7 @@ gg_fig_1e_yearly_region_gi_pct_global <-
 
 # Global - Comparison - Region Line Graph (freq)
 gg_fig_1e_yearly_region_comparison_freq_global <-
-  ggplot(data = fig_df_1e_yearly_region_comparison_freq_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1e_yearly_region_comparison_freq_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = freq_of_all_trials, group = region)) +
   geom_line(aes(color = region), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -4277,7 +4277,7 @@ gg_fig_1e_yearly_region_comparison_freq_global <-
 
 # Global - Comparison - Region Line Graph (pct)
 gg_fig_1e_yearly_region_comparison_pct_global <-
-  ggplot(data = fig_df_1e_yearly_region_comparison_pct_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1e_yearly_region_comparison_pct_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = region)) +
   geom_line(aes(color = region), size = 2) +
   # geom_point(fill = 'white', color = 'black', shape = 21, size = 5) +
@@ -4304,7 +4304,7 @@ gg_fig_1e_yearly_region_comparison_pct_global <-
 
 # Global - COMBINED - Region Line Graph (freq)
 gg_fig_1e_yearly_region_COMBINED_freq_global <-
-  ggplot(data = fig_df_1e_yearly_region_COMBINED_freq_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1e_yearly_region_COMBINED_freq_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = freq_of_all_trials, group = group_id)) +
   geom_line(aes(color = region,
                 alpha = specialty_group), size = 2) +
@@ -4335,7 +4335,7 @@ gg_fig_1e_yearly_region_COMBINED_freq_global <-
 
 # Global - COMBINED - Region Line Graph (pct; alpha)
 gg_fig_1e_yearly_region_COMBINED_pct_global_alpha <-
-  ggplot(data = fig_df_1e_yearly_region_COMBINED_pct_global %>% filter(year_trial > 2007, year_trial < 2018),
+  ggplot(data = fig_df_1e_yearly_region_COMBINED_pct_global %>% filter(year_trial > 2007, year_trial < 2020),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = group_id)) +
   geom_line(aes(color = region,
                 alpha = specialty_group), size = 2) +
@@ -4440,7 +4440,7 @@ fig_df_1f_yearly_region_COMBINED_freq_global <-
 ## Plot The GNI Status Data
 gg_fig_1f_yearly_gni_COMBINED_pct_global_alpha <- 
   ggplot(data = fig_df_1f_yearly_region_COMBINED_pct_global 
-         %>% filter(year_trial > 2007, year_trial < 2018) %>%
+         %>% filter(year_trial > 2007, year_trial < 2020) %>%
            filter(gnistatus == 'lmiconly'),
          aes(x = factor(year_trial), y = pct_of_all_trials, group = group_id)) +
   geom_line(aes(alpha = specialty_group,
@@ -5002,7 +5002,7 @@ df_fig_2_disease_sponsor_location <-
   mutate(finalnames = fct_reorder(finalnames, as.numeric(disease_subgroup), .desc = FALSE)) %>% # relevel to match the other factor levels
   mutate(final_freq = prettyNum(enrollment_spec_diseaseyear, big.mark = ',', big.interval = 3, scientific = FALSE)) %>%
   filter(year_trial > 2007, # these years are not complete!  
-         year_trial < 2018)
+         year_trial < 2020)
 
 # Number of Trials by Disease
 

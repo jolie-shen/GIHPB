@@ -11,14 +11,14 @@ libraries <- c(
 loaded <- lapply(libraries, library, character.only = TRUE)
 
 # Set working directory
-setwd("~/Downloads/R stuff")
+setwd("~/Downloads")
 
 # --------------------------------------------------------------------------------------------------------- #
 # --------------------------           Load The Rest Of The Clinical Trials Data          -------------------
 # ----------------------------------------------------------------------------------------------------------#
 
 # ----- WHAT VERSION OF DATA DO WE WANT TO USE?? --------------------
-gianalysis_data_directory <- 'all_ctgov_tables_oct_29_2019'
+gianalysis_data_directory <- 'all_ctgov_jun17'
 
 # load most of the supporting tables
 # includes things like my_fac2 or my_studies, already processed
@@ -37,7 +37,7 @@ colnames(fdaaa_tracker_data) <- paste0('fdaaatracker_', fdaa_cols)
 # --------------------        load and organize data from GI Team       --------------------------
 # -------------------------------------------------------------------------------------------------------- #
 
-xls_file_path <- 'all_ctgov_tables_oct_29_2019/gi_hpb_initial_data.xlsx'
+xls_file_path <- 'all_ctgov_jun17/gi_hpb_trials_updated_jun17.xlsx'
 raw_gi_list <- 
   openxlsx::read.xlsx(xlsxFile = xls_file_path,
                       sheet = 1, startRow = 1) %>%

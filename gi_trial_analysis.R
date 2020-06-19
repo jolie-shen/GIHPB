@@ -1517,3 +1517,46 @@ make_plots <- function(full_gi_df, col_name, title) {
 
 make_plots(full_gi_df, "new_primary_purpose_treatment", "Purpose Over Time")
 
+
+##############
+#SPIDER PLOTS
+#############
+		
+library(janitor)
+library(fmsb)
+do_radar_graphs <- function(data, columns) {
+  col_name <- "industry_any2b"
+  unique_cols <- unique(data[[col_name]])
+  df <- do.call(rbind, lapply(unique_cols, function(col_value) {
+    temp <- data %>%
+      filter(!!rlang::sym(col_name) == col_value) %>%
+        gather(x, value, all_of(columns)) %>%
+        group_by(x) %>%
+        tally(value == TRUE) %>%
+        t()
+    temp <- as.data.frame(temp, stringsAsFactors=FALSE) %>%
+      row_to_names(row_number = 1) %>%
+      mutate_if(is.character, as.numeric)
+  }))
+  min <- min(df)
+  max <- max(df)
+  num_columns <- ncol(df)
+  df <- rbind(rep(max, num_columns), rep(min, num_columns), df)
+  colors_border <- c( rgb(0.2,0.5,0.5,0.9), rgb(0.8,0.2,0.5,0.9) , rgb(0.7,0.5,0.1,0.9) )
+  colors_in <- c(rgb(0.2,0.5,0.5,0.4), rgb(0.8,0.2,0.5,0.4) , rgb(0.7,0.5,0.1,0.4) )
+  radarchart(df, 
+    axistype=1, 
+    pcol=colors_border,, 
+    pfcol=colors_in,
+      plwd=4,
+      plty=1,
+      cglcol="grey",
+      cglty=1,
+      axislabcol="grey",
+      caxislabels=round(seq(min, max, (max - min) / 4), 0),
+      cglwd=0.8, 
+      vlcex=0.8
+    )
+    legend(x=0.7, y=1, legend = unique_cols, bty = "n", pch=20 , col=colors_in , text.col = "grey", cex=1.2, pt.cex=3)
+}
+do_radar_graphs(full_gi_df, c("location_esophagus", "location_stomach", "location_anus"))

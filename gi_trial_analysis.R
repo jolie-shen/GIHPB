@@ -928,7 +928,8 @@ methods[c(
 
 methods[c(
   "num_facilities", 
-  "num_regions", 
+  "num_regions",
+  "all_comp_num_arms", 
   "num_countries")] = "cart"
 
 # Set all variables to 0 to begin with

@@ -469,7 +469,10 @@ add_additional_columns <- function(input_df, recompute_dates = FALSE) {
       br_phase4_ref_ph1 = fct_relevel(br_phase4, 'Phase 1'),
       number_of_regions = 1 + str_count(all_regions, ";"),
       new_num_countries = Hmisc::cut2(num_countries, c(1, 2, 3, Inf)),
-      year_trial = year(study_first_submitted_date)
+      year_trial = year(study_first_submitted_date),
+      all_other_disease = !infection_any & !neoplasia_disease & 
+	        !infection_helminth & !infection_intestines & 
+	        !infection_hepatitis & !neoplasia_primary & !neoplasia_metastasis		    
     ) %>%
     left_join(fdaaa_tracker_data,
               by = c('nct_id' = 'fdaaatracker_registry_id'))

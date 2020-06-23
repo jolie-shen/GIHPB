@@ -527,14 +527,8 @@ get_freq_table <- function(group_name, input_df, col1_name, col2_name, display_g
     name = rownames(tbl)
   )
 
-  if (nrow(tbl) == 3 & "TRUE" %in% rownames(tbl)) {
-    new_df <- new_df %>% filter(name != "FALSE")
-  }
-
-  if (sum(tbl["Missing", ]) == 0) {
-    new_df <- new_df %>% filter(name != "Missing")
-  }
-
+  is_binary <- nrow(tbl) == 3 & "TRUE" %in% rownames(tbl)
+  no_missing <- sum(tbl["Missing", ]) == 0
   for (col in colnames(tbl)) {
     col_total <- sum(tbl[, col])
     missing_total <- tbl["Missing", col]
@@ -565,6 +559,13 @@ get_freq_table <- function(group_name, input_df, col1_name, col2_name, display_g
     new_df <- new_df %>% mutate(group_p_val = "-")
   }
 
+  if (no_missing) {
+    new_df <- new_df[new_df$name != "Missing", ]
+  }
+  if (is_binary) {
+    new_df <- new_df[new_df$name != "FALSE", ]
+  }
+
   return(new_df)
 }
 
@@ -591,15 +592,15 @@ do_table_analysis <- function(df, cols) {
   regions_other <- get_freq_table("Region-Other", df, "neither3regions", cols, FALSE)
 
   interventions <- do.call(rbind, lapply(cols_interventions, function(i) {
-    get_freq_table(i, full_gi_df, i, cols)
+    get_freq_table(i, df, i, cols)
   }))
 
   diseases <- do.call(rbind, lapply(cols_disease, function(i) {
-    get_freq_table(i, full_gi_df, i, cols)
+    get_freq_table(i, df, i, cols)
   }))
 
   locations <- do.call(rbind, lapply(cols_location, function(i) {
-    get_freq_table(i, full_gi_df, i, cols)
+    get_freq_table(i, df, i, cols)
   }))
 
   total <- rbind(

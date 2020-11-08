@@ -1237,7 +1237,7 @@ save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
   survival_fit <- surv_fit(formula = ffmla, data = filtered)
   plot <- ggsurvplot(survival_fit, 
             fun = 'event',
-            palette = "YlOrRd",
+            palette = "Dark2",
             data = filtered,
             xlim = c(0,60),
             ylim = c(0, .4),

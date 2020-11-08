@@ -1228,13 +1228,14 @@ early_disc <- do_logistic("early_discontinuation_completed_vs_stoppedearly", imp
 # KAPLAN-MEIER
 		 
 #############
-save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
+save_kaplain_meier <- function(data, var, file_path, new_names, file_name = NA) {
   if (is.na(file_name)) {
     file_name <- paste0(var, ".png")
   }
   filtered <- data %>% filter(br_trialduration > 0)
   ffmla <- as.formula(paste0("Surv(br_trialduration, br_censor_earlydiscontinuation) ~ ", var))
   survival_fit <- surv_fit(formula = ffmla, data = filtered)
+  names(survival_fit$strata) <- new_names
   plot <- ggsurvplot(survival_fit, 
             fun = 'event',
             palette = "Dark2",
@@ -1244,6 +1245,9 @@ save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
             censor.shape = 124,
             censor.size = 2.0,
             risk.table = TRUE,
+            legend = "none",
+            # risk.table.col = "strata",
+            # risk.table.y.text = FALSE,
             pval.size = 10,
             ylab = 'Cumulative incidence of\nearly discontinuation',
             size = 1.5, 
@@ -1256,18 +1260,19 @@ save_kaplain_meier <- function(data, var, file_path, file_name = NA) {
     dev.off()
 }
 
-save_kaplain_meier(full_gi_df, "industry_any2b", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "all_other_disease", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "infection_any", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "neoplasia_disease", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "br_phase4_ref_ph3", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "new_primary_purpose_treatment", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "br_allocation", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "br_singleregion4", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "new_num_facilities", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "has_dmc", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "br_masking2", "~/Desktop/km_curves/")
-save_kaplain_meier(full_gi_df, "new_enroll", "~/Desktop/km_curves/")
+save_kaplain_meier(full_gi_df, "industry_any2b", "~/Desktop/km_curves/", c("Industry", "Academic", "US Government"))
+save_kaplain_meier(full_gi_df, "all_other_disease", "~/Desktop/km_curves/", c("Neoplasia & Infection", "All Other Disease"))
+save_kaplain_meier(full_gi_df, "infection_any", "~/Desktop/km_curves/", c("All Other Disease", "Infection"))
+save_kaplain_meier(full_gi_df, "neoplasia_disease", "~/Desktop/km_curves/", c("All Other Disease", "Neoplasia"))
+save_kaplain_meier(full_gi_df, "br_phase4_ref_ph3", "~/Desktop/km_curves/", c("Phase 3", "Not Applicable", "Phase 1", "Phase 2", "Phase 4"))
+save_kaplain_meier(full_gi_df, "new_primary_purpose_treatment", "~/Desktop/km_curves/", c("Primary Purpose = Treatment", "Primary Purpose = Basic Science", "Primary Purpose = Other", "Primary Purpose = Prevention"))
+save_kaplain_meier(full_gi_df, "br_allocation", "~/Desktop/km_curves/", c("Non-Randomized", "Randomized"))
+save_kaplain_meier(full_gi_df, "br_singleregion4", "~/Desktop/km_curves/", c("Other and Multi-Region", "East Asia", "Europe", "North America"))
+save_kaplain_meier(full_gi_df, "new_num_facilities", "~/Desktop/km_curves/", c("Number Of Facilities = 1", "Number Of Facilities = 2", "Number Of Facilities = [3, 10)", "Number Of Facilities = [10, Infinity)"))
+save_kaplain_meier(full_gi_df, "has_dmc", "~/Desktop/km_curves/", c("No DMC", "Has DMC"))
+save_kaplain_meier(full_gi_df, "br_masking2", "~/Desktop/km_curves/", c("No Blinding", "Double Blinding", "Single Blinding"))
+save_kaplain_meier(full_gi_df, "new_enroll", "~/Desktop/km_curves/", c("enrollment = [0,10)", "enrollment = [10, 50)", "enrollment = [50, 100)", "enrollment = [100, 500)", "enrollment = [500, 1000)", "enrollment = [1000, Infinity]"))
+
 
 
 

@@ -1494,34 +1494,33 @@ View(joined)
 ##########
 
 #Stream Graphs, can edit "new_primary_purpose_treatment" into any variable, net variable is the title
+
 make_plots <- function(full_gi_df, col_name, title) {
-  data <- full_gi_df %>% 
-    filter(!is.na(!!rlang::sym(col_name))) %>%
-    select(year_trial, !!rlang::sym(col_name)) %>% 
-    group_by(year_trial, !!rlang::sym(col_name)) %>% 
-    summarise(n = n())
-
-  totals <- data %>%
-    group_by(year_trial) %>%
-    summarise(n = sum(n))
-
-  joined <- left_join(data, totals, by =  "year_trial")
-  joined <- joined %>% 
-    mutate(pct = 100 * n.x / n.y) %>%
-    select(year_trial, !!rlang::sym(col_name), pct)
-
-  ggplot(joined, aes(x = year_trial, y = pct, fill = !!rlang::sym(col_name))) +
-    geom_area(alpha=0.6 , size=.5, colour="white") +
-    scale_fill_viridis(discrete = T) +
-    ggtitle(title) + ylab("Percent (%)") + 
-    xlab("Year of Trial Submission") + 
-    labs(fill = "") + 
-    scale_x_continuous (breaks = c(2007, 2009, 2011, 2013, 2015, 2017, 2019))
+    data <- full_gi_df %>% 
+        filter(!is.na(!!rlang::sym(col_name))) %>%
+        select(year_trial, !!rlang::sym(col_name)) %>% 
+        group_by(year_trial, !!rlang::sym(col_name)) %>% 
+        summarise(n = n())
+    
+    totals <- data %>%
+        group_by(year_trial) %>%
+        summarise(n = sum(n))
+    
+    joined <- left_join(data, totals, by =  "year_trial")
+    joined <- joined %>% 
+        mutate(pct = 100 * n.x / n.y) %>%
+        select(year_trial, !!rlang::sym(col_name), pct)
+    
+    ggplot(joined, aes(x = year_trial, y = pct, fill = !!rlang::sym(col_name))) +
+        geom_area(alpha=0.6 , size=.5, colour="white") +
+        scale_fill_brewer(palette="BuPu") +
+        ggtitle(title) + ylab("Percent (%)") + 
+        xlab("Year of Trial Submission") + 
+        labs(fill = "") + 
+        scale_x_continuous (breaks = c(2007, 2009, 2011, 2013, 2015, 2017, 2019))
 }
 
-make_plots(full_gi_df, "new_primary_purpose_treatment", "Purpose Over Time") 
-
-
+make_plots(full_gi_df, "new_primary_purpose_treatment", "Primary Purpose Over Time") 
 
 ##############
 #SPIDER PLOTS

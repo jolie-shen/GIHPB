@@ -3364,7 +3364,7 @@ gg_fig_1_4pane_gi_global_c <- ggpubr::ggarrange(gg_fig_1a_yearlytotal_gi_global,
                                                    nrow = 4, ncol = 1,
                                                    heights = c(2, 1, 2, 2),
                                                    labels = c('A', 'B', 'C', 'D')) %>%
-annotate_figure(top= text_grob('Characteristics of Surgical Oncology Trials Over Time', face = 'bold'))
+annotate_figure(top= text_grob('Characteristics of GI Trials Over Time', face = 'bold'))
 
 gg_fig_1_4pane_gi_global_c
 

@@ -3051,7 +3051,7 @@ subcolor14 <- '#FFA500' # orange
 subcolor15 <- '#00B2EE' # deep sky blue
 
 g_industry_color5 <- c(subcolor13, subcolor14, subcolor15) # brannon JAMA colors
-names(g_industry_color5) <- c('Industry', 'US.Govt', 'Other')
+names(g_industry_color5) <- c('Industry', 'US Government', 'Academic')
 
 tableau_10_pal <-
   c("#4E79A7", "#F28E2B", "#E15759", "#76B7B2",
@@ -3127,20 +3127,20 @@ subcolor24 <- '#5E59A6' # Purple
 
 
 g_industry_color1 <- c(subcolor1, subcolor2, subcolor3) # red-blue-purple
-names(g_industry_color1) <- c('Industry', 'US.Govt', 'Other')
+names(g_industry_color1) <- c('Industry', 'US Government', 'Academic')
 g_industry_color2 <- c(subcolor4, subcolor5, subcolor6) # red-orange
-names(g_industry_color2) <- c('Industry', 'US.Govt', 'Other')
+names(g_industry_color2) <- c('Industry', 'US Government', 'Academic')
 g_industry_color3 <- c(subcolor7, subcolor8, subcolor9) # tableau colors
-names(g_industry_color3) <- c('Industry', 'US.Govt', 'Other')
+names(g_industry_color3) <- c('Industry', 'US Government', 'Academic')
 g_industry_color4 <- c(subcolor10, subcolor11, subcolor12) # palette
-names(g_industry_color4) <- c('Industry', 'US.Govt', 'Other')
+names(g_industry_color4) <- c('Industry', US Government', 'Academic')
 
 g_industry_color5 <- c(subcolor13, subcolor14, subcolor15) # brannon JAMA colors
-names(g_industry_color5) <- c('Industry', 'US.Govt', 'Other')
+names(g_industry_color5) <- c('Industry', 'US Government', 'Academic')
 g_industry_color5b <- c(subcolor13, subcolor14, subcolor15, # brannon JAMA colors w/ light versions for Comparison
                         subcolor20, subcolor21, subcolor22)
-names(g_industry_color5b) <- c('Industry_gi', 'US.Govt_gi', 'Other_gi',
-                               'Industry_comparison', 'US.Govt_comparison', 'Other_comparison')
+names(g_industry_color5b) <- c('Industry_gi', 'US Government_gi', 'Academic_gi',
+                               'Industry_comparison', 'US Government_comparison', 'Academic_comparison')
 g_industry_alpha5 <- c('gi' = 1.0, 'comparison' = 0.3)
 
 g_region_color6_old <- c(subcolor16, subcolor17, subcolor18, subcolor19) 
